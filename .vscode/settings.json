@@ -1,0 +1,10 @@
+{
+    "files.associations": {
+        "*.tcc": "cpp",
+        "list": "cpp",
+        "functional": "cpp",
+        "iterator": "cpp",
+        "random": "cpp",
+        "string_view": "cpp"
+    }
+}
