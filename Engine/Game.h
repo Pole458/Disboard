@@ -15,12 +15,11 @@ class Game {
 
     public:
 
+        Game();
         Game(IBoard* board, IPlayer* first, IPlayer* second);  
         ~Game();
 
-        void play();
-
-    protected:
+        void play(bool verbose = false);
 
         IBoard* board;
         IPlayer* fist_player;

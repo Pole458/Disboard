@@ -14,4 +14,8 @@ class RandomPlayer : public IPlayer
 		~RandomPlayer();
 
 		IMove* choose_move(IBoard* board);
+
+	protected:
+		std::vector<IMove*> possible_moves;
+		void clear_possible_moves();
 };

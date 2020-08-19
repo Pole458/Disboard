@@ -2,6 +2,11 @@
 
 #include <iostream>
 
+Game::Game()
+{
+
+}
+
 Game::Game(IBoard* board, IPlayer* first, IPlayer* second)
 {
     this->board = board;
@@ -14,11 +19,12 @@ Game::~Game()
     
 }
 
-void Game::play()
+void Game::play(bool verbose)
 {
-    std::cout << board->to_string() << std::endl;
+    if(verbose)
+        std::cout << board->to_string() << std::endl;
 
-    while(true)
+    while(board->should_keep_going())
     {
         IMove* move;
 
@@ -34,12 +40,15 @@ void Game::play()
         board->make_move(move);
         move_history.push_back(move);
 
-        std::cout << "Turn " << board->turn << " - " << move->to_string() << std::endl;
-        std::cout << board->to_string() << std::endl;
+        if(verbose)
+        {
+            std::cout << "Turn " << board->turn << " - " << move->to_string() << std::endl;
+            std::cout << board->to_string() << std::endl;
+        }
 
         if(board->check_victory(move))
         {
-            std::cout << "Player " << (board->turn % 2 == 1 ? "1" : "2") << " won" << std::endl;
+            board->status = (board->turn % 2 == 1 ? IBoard::First : IBoard::Second);
             break;
         }
 

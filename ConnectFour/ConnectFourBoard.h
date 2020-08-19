@@ -23,14 +23,17 @@ class ConnectFourBoard : public IBoard
         ConnectFourBoard();
         ~ConnectFourBoard();
 
-        std::vector<IMove*> get_possible_moves();
+        void get_possible_moves(std::vector<IMove*> &possible_moves);
         void make_move(IMove* move);
         bool check_victory(IMove* last_move);
 
         void reset();
 
+        bool should_keep_going();
+
         std::string to_string();
 
+        IBoard* get_copy();
 
     private:
         char board[HEIGHT][WIDTH];

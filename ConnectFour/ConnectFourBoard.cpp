@@ -14,11 +14,26 @@ ConnectFourBoard::~ConnectFourBoard()
 
 void ConnectFourBoard::reset()
 {
+    status = Ongoing;
+
     turn = 1;
 
     for(int rowIndex = 0; rowIndex < HEIGHT; rowIndex++)
         for(int columnIndex = 0; columnIndex < WIDTH; columnIndex++)
             board[rowIndex][columnIndex] = space;
+}
+
+IBoard* ConnectFourBoard::get_copy()
+{
+    ConnectFourBoard* copy = new ConnectFourBoard();
+    copy->status = status;
+    copy->turn = turn;
+
+    for(int rowIndex = 0; rowIndex < HEIGHT; rowIndex++)
+        for(int columnIndex = 0; columnIndex < WIDTH; columnIndex++)
+            copy->board[rowIndex][columnIndex] = board[rowIndex][columnIndex];
+
+    return copy;
 }
 
 std::string ConnectFourBoard::to_string()
@@ -38,21 +53,15 @@ std::string ConnectFourBoard::to_string()
     return s;
 }
 
-std::vector<IMove*> ConnectFourBoard::get_possible_moves()
+void ConnectFourBoard::get_possible_moves(std::vector<IMove*> &possible_moves)
 {
-    std::vector<IMove*> moves;
-
     for(int columnIndex = 0; columnIndex < WIDTH; columnIndex++)
     {
         if(board[HEIGHT - 1][columnIndex] == space)
         {
-            ConnectFourMove* move = new ConnectFourMove(columnIndex);
-            moves.push_back(move);
-            // std::cout << (char)(columnIndex + 'A') << " is possible" << std::endl;
+            possible_moves.push_back(new ConnectFourMove(columnIndex));
         }
     }
-
-    return moves;
 }
 
 void ConnectFourBoard::make_move(IMove* move)
@@ -67,8 +76,8 @@ void ConnectFourBoard::make_move(IMove* move)
             break;
         }
     }
-}
 
+}
 
 bool ConnectFourBoard::check_victory(IMove* last_move)
 {
@@ -162,4 +171,9 @@ bool ConnectFourBoard::check_victory(IMove* last_move)
     }
 
     return false;
+}
+
+bool ConnectFourBoard::should_keep_going()
+{
+    return turn <= HEIGHT * WIDTH;
 }
