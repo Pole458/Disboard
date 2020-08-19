@@ -14,7 +14,6 @@ RandomPlayer::~RandomPlayer()
 
 IMove* RandomPlayer::choose_move(IBoard* board)
 {
-
     clear_possible_moves();
 
     board->get_possible_moves(possible_moves);

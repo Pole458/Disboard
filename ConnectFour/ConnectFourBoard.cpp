@@ -14,7 +14,7 @@ ConnectFourBoard::~ConnectFourBoard()
 
 void ConnectFourBoard::reset()
 {
-    status = Ongoing;
+    status = IBoard::Ongoing;
 
     turn = 1;
 
@@ -77,6 +77,18 @@ void ConnectFourBoard::make_move(IMove* move)
         }
     }
 
+    if(check_victory(move))
+    {
+        status = (turn % 2 == 1 ? IBoard::First : IBoard::Second);
+    }
+    else if(turn == 42)
+    {
+        status = IBoard::Draw;
+    }
+    else
+    {
+        turn++;
+    }
 }
 
 bool ConnectFourBoard::check_victory(IMove* last_move)
@@ -175,5 +187,5 @@ bool ConnectFourBoard::check_victory(IMove* last_move)
 
 bool ConnectFourBoard::should_keep_going()
 {
-    return turn <= HEIGHT * WIDTH;
+    return status == IBoard::Ongoing;
 }

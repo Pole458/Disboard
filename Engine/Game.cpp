@@ -37,24 +37,16 @@ void Game::play(bool verbose)
             move = second_player->choose_move(board);
         }
 
+        if(verbose)
+            std::cout << "Turn " << board->turn << " - " << move->to_string() << std::endl;
+
         board->make_move(move);
         move_history.push_back(move);
 
         if(verbose)
         {
-            std::cout << "Turn " << board->turn << " - " << move->to_string() << std::endl;
             std::cout << board->to_string() << std::endl;
+            // std::cin.get();
         }
-
-        if(board->check_victory(move))
-        {
-            board->status = (board->turn % 2 == 1 ? IBoard::First : IBoard::Second);
-            break;
-        }
-
-        board->turn++;
-
-        if(verbose)
-            std::cin.get();
     }
 }

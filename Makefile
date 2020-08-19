@@ -1,5 +1,5 @@
-all: Game.o RandomPlayer.o ConnectFourBoard.o ConnectFourMove.o Node.o MonteCarloPlayer.o StudPlayer.o
-	g++ -o main main.cpp Game.o RandomPlayer.o ConnectFourBoard.o ConnectFourMove.o Node.o MonteCarloPlayer.o StudPlayer.o
+all: Game.o RandomPlayer.o ConnectFourBoard.o ConnectFourMove.o Node.o MonteCarloPlayer.o HumanPlayer.o
+	g++ -o main main.cpp Game.o RandomPlayer.o ConnectFourBoard.o ConnectFourMove.o Node.o MonteCarloPlayer.o HumanPlayer.o
 
 Game.o: Engine/Game.cpp Engine/Game.h
 	g++ -c Engine/Game.cpp
@@ -19,8 +19,11 @@ Node.o: Player/Node.h Player/Node.cpp
 MonteCarloPlayer.o: Player/MonteCarloPlayer.h Player/MonteCarloPlayer.cpp
 	g++ -c Player/MonteCarloPlayer.cpp
 
-StudPlayer.o: Player/StudPlayer.h Player/StudPlayer.cpp
-	g++ -c Player/StudPlayer.cpp
+# StudPlayer.o: Player/StudPlayer.h Player/StudPlayer.cpp
+# 	g++ -c Player/StudPlayer.cpp
+
+HumanPlayer.o: Player/HumanPlayer.h Player/HumanPlayer.cpp
+	g++ -c Player/HumanPlayer.cpp
 
 clean:
 	rm *.o

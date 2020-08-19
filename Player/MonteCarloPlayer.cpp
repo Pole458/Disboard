@@ -31,7 +31,7 @@ IMove* MonteCarloPlayer::choose_move(IBoard* board)
     for(; total_played < 1000; total_played++)
     {
         
-        // std::cout << " - iteration: " << total_played << std::endl;
+        // std::cout << " -- ITERATION: " << total_played << std::endl;
 
         Node* node = root;
 
@@ -45,8 +45,11 @@ IMove* MonteCarloPlayer::choose_move(IBoard* board)
             Node* selected_node;
             float highscore = -1;
 
+            // std::cout << (node->board->turn % 2 == my_turn) << std::endl << node->board->to_string() << std::endl;
+            // std::cin.get();
+
             if(node->board->turn % 2 == my_turn)
-            {                
+            {
                 for(auto n : node->children)
                 {
                     float ucb = n->get_ucb(total_played);
@@ -62,14 +65,14 @@ IMove* MonteCarloPlayer::choose_move(IBoard* board)
                 for(auto n : node->children)
                 {
                     float ucb = n->get_inverse_ucb(total_played);
-                    // std::cout << "inverse ucb : " << ucb <<std::endl;
-
                     if(ucb > highscore)
                     {
                         selected_node = n;
                         highscore = ucb;
                     }
                 }
+
+                // selected_node = node->children.at(rand() % node->children.size());
             }
 
             level++;
@@ -90,7 +93,6 @@ IMove* MonteCarloPlayer::choose_move(IBoard* board)
 
             child->board = node->board->get_copy();
             child->board->make_move(move);
-            child->board->turn++;
 
             node->children.push_back(child);
         }
@@ -102,14 +104,16 @@ IMove* MonteCarloPlayer::choose_move(IBoard* board)
             
         my_game.play();
 
+        // std::cout << "game played" << std::endl;
+
         float gain = 0;
-        if(my_game.board->status == IBoard::First)
-        {
-            gain = 1.0f;
-        }
-        else if(my_game.board->status == IBoard::Draw)
+        if(my_game.board->status == IBoard::Draw)
         {
             gain = 0.5f;
+        }
+        else if((my_game.board->status == IBoard::First && my_turn == 1) || (my_game.board->status == IBoard::Second && my_turn == 0))
+        {
+            gain = 1;
         }
 
         // std::cout << "rollout: " << gain << std::endl;
@@ -135,16 +139,17 @@ IMove* MonteCarloPlayer::choose_move(IBoard* board)
     for(auto n : root->children)
     {
         float ucb = n->get_ucb(total_played);
-        if(ucb > highscore)
+        float winrate = n->get_winrate();
+        if(winrate > highscore)
         {
             selected_node = n;
-            highscore = ucb;
+            highscore = winrate;
         }
 
-        // std::cout << n->move->to_string() << ": " << ucb << " played: " << n->played << " winrate: " << n->get_winrate() << std::endl;
+        // std::cout << n->move->to_string() << ": " << (winrate * 100) << "% played: " << n->played << " ucb: " << ucb << std::endl;
     }
 
-    // std::cout << selected_node->move->to_string() << std::endl;
+    std::cout << selected_node->move->to_string() << std::endl;
 
     // std::cin.get();
 
