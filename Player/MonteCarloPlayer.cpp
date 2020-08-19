@@ -3,8 +3,8 @@
 
 MonteCarloPlayer::MonteCarloPlayer()
 {    
-    p1 = new StudPlayer();
-    p2 = new StudPlayer();
+    p1 = new RandomPlayer();
+    p2 = new RandomPlayer();
 
     my_game.fist_player = p1;
     my_game.second_player = p2;
@@ -20,72 +20,133 @@ MonteCarloPlayer::~MonteCarloPlayer()
 
 IMove* MonteCarloPlayer::choose_move(IBoard* board)
 {
-
     Node* root = new Node();
+    root->parent = NULL;
+
+    int my_turn = board->turn % 2;
     
     root->board = board->get_copy();
 
-    std::vector<IMove*> possible_moves;
-
-    root->board->get_possible_moves(possible_moves);
-
-    // Creates a child for each possible move
-    for(auto move : possible_moves)
+    int total_played = 0;
+    for(; total_played < 1000; total_played++)
     {
-        Node* node = new Node();
-        node->parent = root;
-        node->move = move;
-
-        node->board = root->board->get_copy();
-        node->board->make_move(move);
         
-        node->board->turn++;
+        // std::cout << " - iteration: " << total_played << std::endl;
 
-        root->children.push_back(node);
-    }
+        Node* node = root;
 
-    IMove* selected_move;
-    float highscore = -1;
-
-    for(auto node : root->children)
-    {
-        for(int i = 0; i < 100; i++)
+        // Tree traversing
+        int level = 0;
+        while(node->children.size() != 0)
         {
-            my_game.board = node->board->get_copy();
 
-            if(my_game.board->turn % 2 == 1)
-            {
-                p1->first_move = node->move;
-                p2->first_move = NULL;
+            // std::cout << "traversting tree: " << node->children.size() <<  " level: " << level <<std::endl;
+
+            Node* selected_node;
+            float highscore = -1;
+
+            if(node->board->turn % 2 == my_turn)
+            {                
+                for(auto n : node->children)
+                {
+                    float ucb = n->get_ucb(total_played);
+                    if(ucb > highscore)
+                    {
+                        selected_node = n;
+                        highscore = ucb;
+                    }
+                }
             }
             else
             {
-                p1->first_move = NULL;
-                p2->first_move = node->move;
-            }
-            
-            my_game.play();
+                for(auto n : node->children)
+                {
+                    float ucb = n->get_inverse_ucb(total_played);
+                    // std::cout << "inverse ucb : " << ucb <<std::endl;
 
-            if(my_game.board->status == IBoard::First)
-            {
-                node->score += 1.0f;
+                    if(ucb > highscore)
+                    {
+                        selected_node = n;
+                        highscore = ucb;
+                    }
+                }
             }
-            else if(my_game.board->status == IBoard::Draw)
-            {
-                node->score += 0.5f;
-            }   
+
+            level++;
+            node = selected_node;
         }
 
-        // std::cout << node->move->to_string() << ": " << node->score << std::endl;
-       
-        if(node->score > highscore)
+        // std::cout << "tree traversed: " << level << std::endl;
+
+        // expand
+        std::vector<IMove*> possible_moves;
+        node->board->get_possible_moves(possible_moves);
+
+        for(auto move : possible_moves)
         {
-            selected_move = node->move;
-            highscore = node->score;
+            Node* child = new Node();
+            child->parent = node;
+            child->move = move;
+
+            child->board = node->board->get_copy();
+            child->board->make_move(move);
+            child->board->turn++;
+
+            node->children.push_back(child);
         }
+
+        // std::cout << "tree expandend: " << node->children.size() << std::endl;
+
+        // rollout
+        my_game.board = node->board->get_copy();
+            
+        my_game.play();
+
+        float gain = 0;
+        if(my_game.board->status == IBoard::First)
+        {
+            gain = 1.0f;
+        }
+        else if(my_game.board->status == IBoard::Draw)
+        {
+            gain = 0.5f;
+        }
+
+        // std::cout << "rollout: " << gain << std::endl;
+
+        // Backprob
+        do
+        {
+            node->score += gain;
+            node->played += 1;
+            node = node->parent;
+            level--;
+        }
+        while(node != NULL);
+
+        // std::cout << "backpropagation: " << level << std::endl;
+
     }
+
+    // Select best move
+    float highscore = -1;
+    Node* selected_node;
+
+    for(auto n : root->children)
+    {
+        float ucb = n->get_ucb(total_played);
+        if(ucb > highscore)
+        {
+            selected_node = n;
+            highscore = ucb;
+        }
+
+        // std::cout << n->move->to_string() << ": " << ucb << " played: " << n->played << " winrate: " << n->get_winrate() << std::endl;
+    }
+
+    // std::cout << selected_node->move->to_string() << std::endl;
 
     // std::cin.get();
 
-    return selected_move;
+    return selected_node->move;
 }

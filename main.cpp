@@ -16,8 +16,8 @@ void test_mc(int n)
 
     ConnectFourBoard board;
 
-    MonteCarloPlayer p1;
-    RandomPlayer p2;
+    RandomPlayer p1;
+    MonteCarloPlayer p2;
 
     Game* game = new Game(&board, &p1, &p2);
 

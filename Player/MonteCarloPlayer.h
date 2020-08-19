@@ -1,7 +1,7 @@
 #pragma once
 
 #include "IPlayer.h"
-#include "StudPlayer.h"
+#include "RandomPlayer.h"
 #include "../Engine/Game.h"
 #include "Node.h"
 
@@ -17,6 +17,6 @@ class MonteCarloPlayer : public IPlayer
     private:
         Game my_game;
 
-        StudPlayer* p1;
-        StudPlayer* p2;
+        RandomPlayer* p1;
+        RandomPlayer* p2;
 };

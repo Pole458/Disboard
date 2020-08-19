@@ -21,8 +21,8 @@ Game::~Game()
 
 void Game::play(bool verbose)
 {
-    if(verbose)
-        std::cout << board->to_string() << std::endl;
+    // if(verbose)
+        // std::cout << board->to_string() << std::endl;
 
     while(board->should_keep_going())
     {
@@ -53,5 +53,8 @@ void Game::play(bool verbose)
         }
 
         board->turn++;
+
+        if(verbose)
+            std::cin.get();
     }
 }

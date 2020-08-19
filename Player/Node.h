@@ -9,6 +9,7 @@ class Node
         Node();
         ~Node();
 
+        float played = 0;
         float score = 0;
 
         IBoard* board;
@@ -17,4 +18,8 @@ class Node
 
         Node* parent;
         std::vector<Node*> children;
+
+        float get_ucb(int total_played);
+        float get_inverse_ucb(int total_played);
+        float get_winrate();
 };
