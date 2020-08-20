@@ -19,9 +19,6 @@ Node.o: Player/Node.h Player/Node.cpp
 MonteCarloPlayer.o: Player/MonteCarloPlayer.h Player/MonteCarloPlayer.cpp
 	g++ -c Player/MonteCarloPlayer.cpp
 
-# StudPlayer.o: Player/StudPlayer.h Player/StudPlayer.cpp
-# 	g++ -c Player/StudPlayer.cpp
-
 HumanPlayer.o: Player/HumanPlayer.h Player/HumanPlayer.cpp
 	g++ -c Player/HumanPlayer.cpp
 

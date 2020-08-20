@@ -15,8 +15,5 @@ class MonteCarloPlayer : public IPlayer
         IMove* choose_move(IBoard* board);
 
     private:
-        Game my_game;
-
-        RandomPlayer* p1;
-        RandomPlayer* p2;
+        RandomPlayer* player;
 };

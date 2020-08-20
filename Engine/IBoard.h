@@ -18,7 +18,7 @@ class IBoard
 
         Status status;
 
-        virtual void get_possible_moves(std::vector<IMove*> &possible_moves) = 0;
+        virtual std::vector<IMove*> get_possible_moves() = 0;
         virtual void make_move(IMove* move) = 0;
         virtual bool check_victory(IMove* last_move) = 0;
 
@@ -29,4 +29,6 @@ class IBoard
         virtual bool should_keep_going() = 0;
 
         virtual IBoard* get_copy() = 0;
+
+        virtual void copy(IBoard* board_to_copy) = 0;
 };

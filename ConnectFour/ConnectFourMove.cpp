@@ -11,3 +11,8 @@ std::string ConnectFourMove::to_string()
     a[0] += column;
     return a;
 }
+
+IMove* ConnectFourMove::get_copy()
+{
+    return new ConnectFourMove(column);
+}

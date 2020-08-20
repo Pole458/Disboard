@@ -23,7 +23,9 @@ class ConnectFourBoard : public IBoard
         ConnectFourBoard();
         ~ConnectFourBoard();
 
-        void get_possible_moves(std::vector<IMove*> &possible_moves);
+        void play(IPlayer* p1, IPlayer* p2, bool verbose = false);
+
+        std::vector<IMove*> get_possible_moves();
         void make_move(IMove* move);
         bool check_victory(IMove* last_move);
 
@@ -34,6 +36,8 @@ class ConnectFourBoard : public IBoard
         std::string to_string();
 
         IBoard* get_copy();
+
+        void copy(IBoard* board_to_copy);
 
     private:
         char board[HEIGHT][WIDTH];

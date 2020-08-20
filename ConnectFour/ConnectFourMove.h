@@ -12,4 +12,6 @@ class ConnectFourMove : public IMove
         int column;
         
         std::string to_string();
+
+        IMove* get_copy();
 };

@@ -36,6 +36,18 @@ IBoard* ConnectFourBoard::get_copy()
     return copy;
 }
 
+void ConnectFourBoard::copy(IBoard* board_to_copy)
+{
+    status = board_to_copy->status;
+    turn = board_to_copy->turn;
+
+    ConnectFourBoard* btc = ((ConnectFourBoard*)board_to_copy);
+
+    for(int rowIndex = 0; rowIndex < HEIGHT; rowIndex++)
+        for(int columnIndex = 0; columnIndex < WIDTH; columnIndex++)
+            board[rowIndex][columnIndex] = btc->board[rowIndex][columnIndex];
+}
+
 std::string ConnectFourBoard::to_string()
 {
     std::string s = "A B C D E F G \n";
@@ -53,15 +65,22 @@ std::string ConnectFourBoard::to_string()
     return s;
 }
 
-void ConnectFourBoard::get_possible_moves(std::vector<IMove*> &possible_moves)
+std::vector<IMove*> ConnectFourBoard::get_possible_moves()
 {
-    for(int columnIndex = 0; columnIndex < WIDTH; columnIndex++)
+    std::vector<IMove*> possible_moves;
+
+    if(status == IBoard::Ongoing) 
     {
-        if(board[HEIGHT - 1][columnIndex] == space)
+        for(int columnIndex = 0; columnIndex < WIDTH; columnIndex++)
         {
-            possible_moves.push_back(new ConnectFourMove(columnIndex));
+            if(board[HEIGHT - 1][columnIndex] == space)
+            {
+                possible_moves.push_back(new ConnectFourMove(columnIndex));
+            }
         }
     }
+    
+    return possible_moves;
 }
 
 void ConnectFourBoard::make_move(IMove* move)

@@ -6,14 +6,13 @@
 class Node
 {
     public:
-        Node();
+        Node(IBoard* board, IMove* move = NULL, Node* parent = NULL);
         ~Node();
 
-        float played = 0;
-        float score = 0;
+        float played;
+        float score;
 
         IBoard* board;
-
         IMove* move;
 
         Node* parent;
@@ -22,4 +21,5 @@ class Node
         float get_ucb(int total_played);
         float get_inverse_ucb(int total_played);
         float get_winrate();
+        float get_inverse_winrate();
 };

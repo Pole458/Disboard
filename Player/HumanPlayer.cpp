@@ -3,6 +3,8 @@
 #include <vector>
 #include <iostream>
 
+#include "../ConnectFour/ConnectFourMove.h"
+
 HumanPlayer::HumanPlayer()
 {
 
@@ -10,7 +12,6 @@ HumanPlayer::HumanPlayer()
 
 HumanPlayer::~HumanPlayer()
 {
-    clear_possible_moves();
 }
 
 bool tryParse(std::string& input, int& output) {
@@ -24,9 +25,8 @@ bool tryParse(std::string& input, int& output) {
 
 IMove* HumanPlayer::choose_move(IBoard* board)
 {
-    clear_possible_moves();
 
-    board->get_possible_moves(possible_moves);
+    std::vector<IMove*> possible_moves = board->get_possible_moves();
 
     for(int i = 0; i < possible_moves.size(); i++)
     {
@@ -46,15 +46,13 @@ IMove* HumanPlayer::choose_move(IBoard* board)
         getline(std::cin, input);
     }
 
-    return possible_moves.at(x);
-}
+    IMove* selected_move = possible_moves.at(x)->get_copy();
 
-void HumanPlayer::clear_possible_moves()
-{
-    // Delete unused moves
     for(auto m : possible_moves)
     {
         delete m;
     }
     possible_moves.clear();
+
+    return selected_move;
 }

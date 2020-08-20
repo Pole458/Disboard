@@ -1,9 +1,9 @@
 
-#include "Engine/Game.h"
 #include "ConnectFour/ConnectFourBoard.h"
 #include "Player/RandomPlayer.h"
 #include "Player/MonteCarloPlayer.h"
 #include "Player/HumanPlayer.h"
+#include "Engine/Game.h"
 
 
 #include <iostream>
@@ -17,20 +17,14 @@ void test_mc(int n)
 
     ConnectFourBoard board;
 
-    // RandomPlayer p1;
-    HumanPlayer p1;
-    // MonteCarloPlayer p1;
-    MonteCarloPlayer p2;
-
-    Game* game = new Game(&board, &p1, &p2);
-
-    time_t start_time = time(NULL);
+    MonteCarloPlayer p1;
+    HumanPlayer p2;
 
     std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
 
     for(int i = 0; i < n; i++)
     {
-        game->play(true);
+        Engine::play(&board, &p1, &p2, true);
 
         if(board.status == IBoard::First)
             w++;
@@ -65,15 +59,14 @@ void test_games(int n)
     RandomPlayer p1;
     RandomPlayer p2;
 
-    Game* game = new Game(&board, &p1, &p2);
-
     time_t start_time = time(NULL);
 
     std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
 
     for(int i = 0; i < n; i++)
     {
-        game->play();
+
+        Engine::play(&board, &p1, &p2, false);
     
         if(board.status == IBoard::First)
             w++;

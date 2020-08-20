@@ -1,120 +1,112 @@
 #include "MonteCarloPlayer.h"
 
-
 MonteCarloPlayer::MonteCarloPlayer()
-{    
-    p1 = new RandomPlayer();
-    p2 = new RandomPlayer();
-
-    my_game.fist_player = p1;
-    my_game.second_player = p2;
+{
+    player = new RandomPlayer();
 }
 
 MonteCarloPlayer::~MonteCarloPlayer()
 {
-    delete p1;
-    delete p2;
-
-    delete my_game.board;
+    delete player;
 }
 
-IMove* MonteCarloPlayer::choose_move(IBoard* board)
+IMove *MonteCarloPlayer::choose_move(IBoard *board)
 {
-    Node* root = new Node();
-    root->parent = NULL;
+
+    Node root = Node(board->get_copy());
 
     int my_turn = board->turn % 2;
-    
-    root->board = board->get_copy();
 
-    int total_played = 0;
-    for(; total_played < 1000; total_played++)
+    int max_depth = 0;
+
+    while (root.played < 10000)
     {
-        
+
         // std::cout << " -- ITERATION: " << total_played << std::endl;
 
-        Node* node = root;
+        Node* node = &root;
 
         // Tree traversing
-        int level = 0;
-        while(node->children.size() != 0)
+        int depth = 0;
+        while (node->children.size() != 0)
         {
 
             // std::cout << "traversting tree: " << node->children.size() <<  " level: " << level <<std::endl;
 
-            Node* selected_node;
+            Node *selected_node;
             float highscore = -1;
+            float score;
 
             // std::cout << (node->board->turn % 2 == my_turn) << std::endl << node->board->to_string() << std::endl;
             // std::cin.get();
 
-            if(node->board->turn % 2 == my_turn)
+            if (node->board->turn % 2 == my_turn)
             {
-                for(auto n : node->children)
+                for (auto n : node->children)
                 {
-                    float ucb = n->get_ucb(total_played);
-                    if(ucb > highscore)
+                    score = n->get_ucb(root.played);
+                    if (score > highscore)
                     {
                         selected_node = n;
-                        highscore = ucb;
+                        highscore = score;
                     }
                 }
             }
             else
             {
-                for(auto n : node->children)
+                for (auto n : node->children)
                 {
-                    float ucb = n->get_inverse_ucb(total_played);
-                    if(ucb > highscore)
+                    score = n->get_inverse_ucb(root.played);
+                    // score = n->get_inverse_winrate();
+                    // score = n->get_ucb(total_played);
+                    if (score > highscore)
                     {
                         selected_node = n;
-                        highscore = ucb;
+                        highscore = score;
                     }
                 }
-
-                // selected_node = node->children.at(rand() % node->children.size());
             }
 
-            level++;
+            depth++;
             node = selected_node;
+        }
+
+        if (max_depth < depth)
+        {
+            max_depth = depth;
         }
 
         // std::cout << "tree traversed: " << level << std::endl;
 
         // expand
-        std::vector<IMove*> possible_moves;
-        node->board->get_possible_moves(possible_moves);
-
-        for(auto move : possible_moves)
+        for (IMove* move : node->board->get_possible_moves())
         {
-            Node* child = new Node();
-            child->parent = node;
-            child->move = move;
-
-            child->board = node->board->get_copy();
-            child->board->make_move(move);
-
+            Node *child = new Node(node->board->get_copy(), move, node);
             node->children.push_back(child);
+
+            child->board->make_move(move);
         }
 
         // std::cout << "tree expandend: " << node->children.size() << std::endl;
 
         // rollout
-        my_game.board = node->board->get_copy();
-            
-        my_game.play();
+
+        IBoard *test_board = node->board->get_copy();
+        Engine::play(test_board, player, player);
 
         // std::cout << "game played" << std::endl;
 
         float gain = 0;
-        if(my_game.board->status == IBoard::Draw)
+        if (test_board->status == IBoard::Draw)
         {
             gain = 0.5f;
         }
-        else if((my_game.board->status == IBoard::First && my_turn == 1) || (my_game.board->status == IBoard::Second && my_turn == 0))
+        else if ((test_board->status == IBoard::First && my_turn == 1) || (test_board->status == IBoard::Second && my_turn == 0))
         {
             gain = 1;
         }
+
+        delete test_board;
 
         // std::cout << "rollout: " << gain << std::endl;
 
@@ -124,34 +116,35 @@ IMove* MonteCarloPlayer::choose_move(IBoard* board)
             node->score += gain;
             node->played += 1;
             node = node->parent;
-            level--;
-        }
-        while(node != NULL);
+            depth--;
+        } while (node != NULL);
 
         // std::cout << "backpropagation: " << level << std::endl;
-
     }
 
     // Select best move
     float highscore = -1;
-    Node* selected_node;
+    Node *selected_node;
 
-    for(auto n : root->children)
+    std::cout << "max_depth: " << max_depth << std::endl;
+
+    for (Node* n : root.children)
     {
-        float ucb = n->get_ucb(total_played);
+        float ucb = n->get_ucb(root.played);
         float winrate = n->get_winrate();
-        if(winrate > highscore)
+        if (winrate > highscore)
         {
             selected_node = n;
             highscore = winrate;
         }
 
-        // std::cout << n->move->to_string() << ": " << (winrate * 100) << "% played: " << n->played << " ucb: " << ucb << std::endl;
+        std::cout << n->move->to_string() << ": " << (winrate * 100) << "% played: " << n->played << " ucb: " << ucb << std::endl;
     }
 
-    std::cout << selected_node->move->to_string() << std::endl;
-
+    // std::cout << selected_node->move->to_string() << std::endl;
     // std::cin.get();
 
-    return selected_node->move;
+    IMove *selected_move = selected_node->move->get_copy();
+
+    return selected_move;
 }
