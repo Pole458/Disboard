@@ -2,13 +2,15 @@
 
 #include <string>
 
-// Interface for a Move
+namespace Engine
+{
 
-class IMove {
+    // Interface for a Move
+    class IMove
+    {
 
     public:
-
         virtual std::string to_string() = 0;
-
-        virtual IMove* get_copy() = 0;
-};
+        virtual IMove *get_copy() = 0;
+    };
+} // namespace Engine

@@ -1,5 +1,5 @@
 
-#include "ConnectFour/ConnectFourBoard.h"
+#include "ConnectFour/Board.h"
 #include "Player/RandomPlayer.h"
 #include "Player/MonteCarloPlayer.h"
 #include "Player/HumanPlayer.h"
@@ -9,16 +9,19 @@
 #include <iostream>
 #include <chrono>
 
+// Change namespace to change game
+using namespace ConnectFour;
+
 void test_mc(int n)
 {
     int w = 0;
     int d = 0;
     float turns = 0;
 
-    ConnectFourBoard board;
+    Board board;
 
-    MonteCarloPlayer p1;
-    HumanPlayer p2;
+    MonteCarloPlayer p2;
+    HumanPlayer p1;
 
     std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
 
@@ -26,9 +29,9 @@ void test_mc(int n)
     {
         Engine::play(&board, &p1, &p2, true);
 
-        if(board.status == IBoard::First)
+        if(board.status == Engine::IBoard::First)
             w++;
-        else if(board.status == IBoard::Draw)
+        else if(board.status == Engine::IBoard::Draw)
             d++;
 
         turns += board.turn;
@@ -54,7 +57,7 @@ void test_games(int n)
     int d = 0;
     float turns = 0;
 
-    ConnectFourBoard board;
+    Board board;
 
     RandomPlayer p1;
     RandomPlayer p2;
@@ -68,9 +71,9 @@ void test_games(int n)
 
         Engine::play(&board, &p1, &p2, false);
     
-        if(board.status == IBoard::First)
+        if(board.status == Engine::IBoard::First)
             w++;
-        else if(board.status == IBoard::Draw)
+        else if(board.status == Engine::IBoard::Draw)
             d++;
 
         turns += board.turn;

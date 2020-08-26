@@ -8,5 +8,5 @@ class HumanPlayer : public IPlayer
 		HumanPlayer();
 		~HumanPlayer();
 
-		IMove* choose_move(IBoard* board);
+		Engine::IMove* choose_move(Engine::IBoard* board);
 };

@@ -1,5 +1,7 @@
 #include "MonteCarloPlayer.h"
 
+#include "../Engine/IPossibleMoves.h"
+
 MonteCarloPlayer::MonteCarloPlayer()
 {
     player = new RandomPlayer();
@@ -10,7 +12,7 @@ MonteCarloPlayer::~MonteCarloPlayer()
     delete player;
 }
 
-IMove *MonteCarloPlayer::choose_move(IBoard *board)
+Engine::IMove *MonteCarloPlayer::choose_move(Engine::IBoard *board)
 {
 
     Node root = Node(board->get_copy());
@@ -24,7 +26,7 @@ IMove *MonteCarloPlayer::choose_move(IBoard *board)
 
         // std::cout << " -- ITERATION: " << total_played << std::endl;
 
-        Node* node = &root;
+        Node *node = &root;
 
         // Tree traversing
         int depth = 0;
@@ -79,29 +81,31 @@ IMove *MonteCarloPlayer::choose_move(IBoard *board)
         // std::cout << "tree traversed: " << level << std::endl;
 
         // expand
-        for (IMove* move : node->board->get_possible_moves())
+        Engine::IPossibleMoves *possible_moves = node->board->get_possible_moves();
+        for (int i = 0; i < possible_moves->size(); i++)
         {
-            Node *child = new Node(node->board->get_copy(), move, node);
+            Node *child = new Node(node->board->get_copy(), possible_moves->move_at(i), node);
             node->children.push_back(child);
 
-            child->board->make_move(move);
+            child->board->make_move(child->move);
         }
+        delete possible_moves;
 
         // std::cout << "tree expandend: " << node->children.size() << std::endl;
 
         // rollout
 
-        IBoard *test_board = node->board->get_copy();
+        Engine::IBoard *test_board = node->board->get_copy();
         Engine::play(test_board, player, player);
 
         // std::cout << "game played" << std::endl;
 
         float gain = 0;
-        if (test_board->status == IBoard::Draw)
+        if (test_board->status == Engine::IBoard::Draw)
         {
             gain = 0.5f;
         }
-        else if ((test_board->status == IBoard::First && my_turn == 1) || (test_board->status == IBoard::Second && my_turn == 0))
+        else if ((test_board->status == Engine::IBoard::First && my_turn == 1) || (test_board->status == Engine::IBoard::Second && my_turn == 0))
         {
             gain = 1;
         }
@@ -128,7 +132,7 @@ IMove *MonteCarloPlayer::choose_move(IBoard *board)
 
     std::cout << "max_depth: " << max_depth << std::endl;
 
-    for (Node* n : root.children)
+    for (Node *n : root.children)
     {
         float ucb = n->get_ucb(root.played);
         float winrate = n->get_winrate();
@@ -144,7 +148,7 @@ IMove *MonteCarloPlayer::choose_move(IBoard *board)
     // std::cout << selected_node->move->to_string() << std::endl;
     // std::cin.get();
 
-    IMove *selected_move = selected_node->move->get_copy();
+    Engine::IMove *selected_move = selected_node->move->get_copy();
 
     return selected_move;
 }

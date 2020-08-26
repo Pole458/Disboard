@@ -3,7 +3,7 @@
 #include <vector>
 #include <iostream>
 
-#include "../ConnectFour/ConnectFourMove.h"
+#include "../Engine/IPossibleMoves.h"
 
 HumanPlayer::HumanPlayer()
 {
@@ -23,14 +23,14 @@ bool tryParse(std::string& input, int& output) {
     return true;
 }
 
-IMove* HumanPlayer::choose_move(IBoard* board)
+Engine::IMove* HumanPlayer::choose_move(Engine::IBoard* board)
 {
 
-    std::vector<IMove*> possible_moves = board->get_possible_moves();
+    Engine::IPossibleMoves* possible_moves = board->get_possible_moves();
 
-    for(int i = 0; i < possible_moves.size(); i++)
+    for(int i = 0; i < possible_moves->size(); i++)
     {
-        std::cout << i << "." << possible_moves.at(i)->to_string() << "  ";
+        std::cout << i << "." << possible_moves->move_at(i)->to_string() << "  ";
     }
 
     std::cout << std::endl;
@@ -46,13 +46,9 @@ IMove* HumanPlayer::choose_move(IBoard* board)
         getline(std::cin, input);
     }
 
-    IMove* selected_move = possible_moves.at(x)->get_copy();
+    Engine::IMove* selected_move = possible_moves->move_at(x);
 
-    for(auto m : possible_moves)
-    {
-        delete m;
-    }
-    possible_moves.clear();
+    delete possible_moves;
 
     return selected_move;
 }

@@ -1,26 +1,17 @@
-all: Game.o RandomPlayer.o ConnectFourBoard.o ConnectFourMove.o Node.o MonteCarloPlayer.o HumanPlayer.o
-	g++ -o main main.cpp Game.o RandomPlayer.o ConnectFourBoard.o ConnectFourMove.o Node.o MonteCarloPlayer.o HumanPlayer.o
+all: Engine.a Player.a ConnectFour.a
+	g++ -o main main.cpp Engine/Engine.a Player/Player.a ConnectFour/ConnectFour.a
 
-Game.o: Engine/Game.cpp Engine/Game.h
-	g++ -c Engine/Game.cpp
+Engine.a:
+	cd Engine; make
 
-RandomPlayer.o: Player/RandomPlayer.h Player/RandomPlayer.cpp
-	g++ -c Player/RandomPlayer.cpp
-
-ConnectFourBoard.o: ConnectFour/ConnectFourBoard.cpp ConnectFour/ConnectFourBoard.h
-	g++ -c ConnectFour/ConnectFourBoard.cpp
-
-ConnectFourMove.o: ConnectFour/ConnectFourMove.cpp ConnectFour/ConnectFourMove.h
-	g++ -c ConnectFour/ConnectFourMove.cpp
-
-Node.o: Player/Node.h Player/Node.cpp
-	g++ -c Player/Node.cpp
-
-MonteCarloPlayer.o: Player/MonteCarloPlayer.h Player/MonteCarloPlayer.cpp
-	g++ -c Player/MonteCarloPlayer.cpp
-
-HumanPlayer.o: Player/HumanPlayer.h Player/HumanPlayer.cpp
-	g++ -c Player/HumanPlayer.cpp
+Player.a:
+	cd Player; make
+	
+ConnectFour.a:
+	cd ConnectFour; make
 
 clean:
-	rm *.o
+	rm -f *.o
+	cd Engine; make clean
+	cd Player; make clean
+	cd ConnectFour; make clean

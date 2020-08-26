@@ -6,14 +6,14 @@
 class Node
 {
     public:
-        Node(IBoard* board, IMove* move = NULL, Node* parent = NULL);
+        Node(Engine::IBoard* board, Engine::IMove* move = NULL, Node* parent = NULL);
         ~Node();
 
         float played;
         float score;
 
-        IBoard* board;
-        IMove* move;
+        Engine::IBoard* board;
+        Engine::IMove* move;
 
         Node* parent;
         std::vector<Node*> children;

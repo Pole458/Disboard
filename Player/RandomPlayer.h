@@ -13,5 +13,5 @@ class RandomPlayer : public IPlayer
 		RandomPlayer();
 		~RandomPlayer();
 
-		IMove* choose_move(IBoard* board);
+		Engine::IMove* choose_move(Engine::IBoard* board);
 };

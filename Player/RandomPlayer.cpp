@@ -1,5 +1,7 @@
 #include "RandomPlayer.h"
 
+#include "../Engine/IPossibleMoves.h"
+
 #include <vector>
 
 RandomPlayer::RandomPlayer()
@@ -11,17 +13,13 @@ RandomPlayer::~RandomPlayer()
 {
 }
 
-IMove* RandomPlayer::choose_move(IBoard* board)
+Engine::IMove* RandomPlayer::choose_move(Engine::IBoard* board)
 {
-    std::vector<IMove*> possible_moves = board->get_possible_moves();
+    Engine::IPossibleMoves* possible_moves = board->get_possible_moves();
 
-    IMove* selected_move = possible_moves.at(rand() % possible_moves.size())->get_copy();
+    Engine::IMove* selected_move = possible_moves->move_at((rand() % possible_moves->size()));
 
-    for(auto m : possible_moves)
-    {
-        delete m;
-    }
-    possible_moves.clear();
+    delete possible_moves;
 
     return selected_move;
 }

@@ -4,7 +4,7 @@
 #include <iostream>
 #include <limits>
 
-Node::Node(IBoard* board, IMove* move, Node* parent)
+Node::Node(Engine::IBoard* board, Engine::IMove* move, Node* parent)
 {
     this->board = board;
     this->move = move;

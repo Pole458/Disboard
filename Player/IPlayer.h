@@ -3,10 +3,11 @@
 #include "../Engine/IBoard.h"
 #include "../Engine/IMove.h"
 
+
 // Interface for a generic player
 
 class IPlayer
 {
     public:
-        virtual IMove* choose_move(IBoard* board) = 0;
+        virtual Engine::IMove* choose_move(Engine::IBoard* board) = 0;
 };

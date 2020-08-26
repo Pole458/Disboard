@@ -12,7 +12,7 @@ class MonteCarloPlayer : public IPlayer
         MonteCarloPlayer();
         ~MonteCarloPlayer();
 
-        IMove* choose_move(IBoard* board);
+        Engine::IMove* choose_move(Engine::IBoard* board);
 
     private:
         RandomPlayer* player;
