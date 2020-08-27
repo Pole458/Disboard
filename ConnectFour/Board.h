@@ -10,7 +10,6 @@
 #include <string>
 #include <vector>
 
-
 namespace ConnectFour
 {
 
@@ -18,8 +17,6 @@ namespace ConnectFour
     {
 
     public:
-
-        
         Board();
         ~Board();
 
@@ -40,10 +37,5 @@ namespace ConnectFour
 
         BitBoard both;
         BitBoard current;
-
-    private:
-        bool check_victory(BitBoard last_move_mask);
-        char board[HEIGHT][WIDTH];
-        
     };
 } // namespace ConnectFour

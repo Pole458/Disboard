@@ -43,15 +43,15 @@ void test_mc(int n)
 
     Board board;
 
-    MonteCarloPlayer p2(10000, false);
-    RandomPlayer p1;
-    // HumanPlayer p1;
+    MonteCarloPlayer p1(100000, true);
+    // RandomPlayer p1;
+    HumanPlayer p2;
 
     std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
 
     for(int i = 0; i < n; i++)
     {
-        Engine::play(&board, &p1, &p2, false);
+        Engine::play(&board, &p1, &p2, true);
 
         if(board.status == Engine::IBoard::First)
             w++;
@@ -147,7 +147,7 @@ int main()
 
     // test_cf();
 
-    test_mc(100);
+    test_mc(1);
 
     // test_games(10000);
 

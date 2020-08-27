@@ -3,7 +3,7 @@
 
 namespace ConnectFour
 {
-    Move::Move(BitBoard column)
+    Move::Move(int column)
     {
         this->column = column;
     }
@@ -11,11 +11,7 @@ namespace ConnectFour
     std::string Move::to_string()
     {
         std::string a = "A";
-        int column_index = 0;
-        // Find column index;
-        for(BitBoard mask = 1; !(column & mask); mask = mask << 1, column_index++);
-
-        a[0] += column_index;
+        a[0] += column;
         return a;
     }
 

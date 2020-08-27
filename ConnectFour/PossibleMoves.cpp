@@ -31,33 +31,38 @@ namespace ConnectFour
 
     Engine::IMove *PossibleMoves::move_at(int move_index)
     {
-        BitBoard mask = 1UL;
-        for(; move_index > 0 || !(bitboard & mask); mask = mask << 1)
-        {
-            if(bitboard & mask)
-            {
-                move_index--;
-            }
-        }
+        BitBoard mask = (1UL << (HEIGHT - 1)) << (HEIGHT * move_index);
+        int columm_index = move_index;
+        for(; !(bitboard & mask); mask <<= HEIGHT, columm_index++);
 
-        return new Move(mask);
+        // for(; move_index > 0 || !(bitboard & mask); mask <<= WIDTH)
+        // {
+        //     if(bitboard & mask)
+        //     {
+        //         move_index--;
+        //     }
+        // }
+
+        return new Move(columm_index);
     }
 
     std::string PossibleMoves::to_string()
     {
         std::string s = "";
 
-        int c = 0;
-        for (BitBoard mask = 1UL; mask & upper_row_mask; mask = mask << 1)
+        for(int column_index = 0, count = 0; column_index < WIDTH; column_index++)
         {
-            if (bitboard & mask)
+            if (bitboard & top_mask(column_index))
             {
-                s += ('0' + c);
-                c++;
+                s += ('0' + count);
+                count++;
             }
-            else s += "-";
+            else
+            {
+                s += '-';
+            }
 
-            s += " ";
+            s += ' ';
         }
 
         return s;

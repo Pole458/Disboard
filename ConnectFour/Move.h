@@ -8,9 +8,9 @@ namespace ConnectFour
     class Move : public Engine::IMove
     {
     public:
-        Move(BitBoard c);
+        Move(int c);
 
-        BitBoard column;
+        int column;
 
         std::string to_string();
 
