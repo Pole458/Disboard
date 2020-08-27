@@ -4,13 +4,8 @@
         {
             "type": "shell",
             "label": "C/C++: g++ build active file",
-            "command": "/usr/bin/g++",
-            "args": [
-                "-g",
-                "${file}",
-                "-o",
-                "${fileDirname}/${fileBasenameNoExtension}"
-            ],
+            "command": "/usr/bin/make",
+            "args": [],
             "options": {
                 "cwd": "${workspaceFolder}"
             },

@@ -11,6 +11,7 @@ ConnectFour.a:
 	cd ConnectFour; make
 
 clean:
+	rm -f main
 	rm -f *.o
 	cd Engine; make clean
 	cd Player; make clean

@@ -12,6 +12,29 @@
 // Change namespace to change game
 using namespace ConnectFour;
 
+// void test_cf()
+// {
+//     Board board;
+//     for(int i = 0; i < 42; i++)
+//     {
+//         board.both = 1;
+//         board.both = board.both << i;
+//         board.current = board.both;
+//         std::cout << i << ": " << board.to_string() << std::endl;
+//     }
+// }
+
+void single_game()
+{
+    Board board;
+
+    // MonteCarloPlayer p2;
+    RandomPlayer p2;
+    HumanPlayer p1;
+
+    Engine::play(&board, &p1, &p2, true);
+}
+
 void test_mc(int n)
 {
     int w = 0;
@@ -20,14 +43,15 @@ void test_mc(int n)
 
     Board board;
 
-    MonteCarloPlayer p2;
-    HumanPlayer p1;
+    MonteCarloPlayer p2(10000, false);
+    RandomPlayer p1;
+    // HumanPlayer p1;
 
     std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
 
     for(int i = 0; i < n; i++)
     {
-        Engine::play(&board, &p1, &p2, true);
+        Engine::play(&board, &p1, &p2, false);
 
         if(board.status == Engine::IBoard::First)
             w++;
@@ -117,7 +141,11 @@ int main()
     // Set up rng
     srand(time(NULL));
 
+    // single_game();
+
     // test_random(1000, 7);
+
+    // test_cf();
 
     test_mc(100);
 

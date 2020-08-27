@@ -1,7 +1,10 @@
 all: ConnectFour.a
 
-ConnectFour.a: Board.o Move.o PossibleMoves.o
+ConnectFour.a: ConnectFour.o Board.o Move.o PossibleMoves.o
 	ar -rv $@ $^
+
+ConnectFour.o: ConnectFour.h ConnectFour.cpp
+	g++ -c ConnectFour.cpp
 
 Board.o: Board.h Board.cpp
 	g++ -c Board.cpp

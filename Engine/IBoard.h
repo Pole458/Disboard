@@ -29,7 +29,6 @@ namespace Engine
 
         virtual IPossibleMoves *get_possible_moves() = 0;
         virtual void make_move(IMove *move) = 0;
-        virtual bool check_victory(IMove *last_move) = 0;
 
         virtual void reset() = 0;
 

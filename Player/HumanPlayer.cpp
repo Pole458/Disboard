@@ -26,23 +26,26 @@ bool tryParse(std::string& input, int& output) {
 Engine::IMove* HumanPlayer::choose_move(Engine::IBoard* board)
 {
 
+
     Engine::IPossibleMoves* possible_moves = board->get_possible_moves();
 
-    for(int i = 0; i < possible_moves->size(); i++)
-    {
-        std::cout << i << "." << possible_moves->move_at(i)->to_string() << "  ";
-    }
+    std::cout << possible_moves->to_string() << std::endl;
 
-    std::cout << std::endl;
+    // for(int i = 0; i < possible_moves->size(); i++)
+    // {
+    //     std::cout << i << "." << possible_moves->move_at(i)->to_string() << "  ";
+    // }
+
+    // std::cout << std::endl;
 
     std::string input;
-    int x;
+    int x = -1;
 
     getline(std::cin, input);
 
-    while (!tryParse(input, x))
+    while(!tryParse(input, x) || x < 0 || x >= possible_moves->size())
     {
-        std::cout << "Please enter a number: ";
+        std::cout << "Please enter a number between 0 and " << (possible_moves->size() - 1) << ": ";
         getline(std::cin, input);
     }
 

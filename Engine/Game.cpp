@@ -36,5 +36,21 @@ namespace Engine
                 // std::cin.get();
             }
         }
+
+        if(verbose)
+        {
+            switch(board->status)
+            {
+                case IBoard::First:
+                    std::cout << "Player 1 won!" << std::endl;
+                break;
+                case IBoard::Second:
+                    std::cout << "Player 2 won!" << std::endl;
+                break;
+                case IBoard::Draw:
+                    std::cout << "Draw!" << std::endl;
+                break;
+            }
+        }
     }
 } // namespace Engine

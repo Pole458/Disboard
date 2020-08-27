@@ -1,7 +1,7 @@
 #pragma once
 
 #include "../Engine/IPossibleMoves.h"
-#include "fwd.h"
+#include "ConnectFour.h"
 #include "Board.h"
 
 namespace ConnectFour
@@ -16,6 +16,7 @@ namespace ConnectFour
             
             int size();
             Engine::IMove* move_at(int move_index);
+            std::string to_string();
 
         private:
             int _size; // cached value;

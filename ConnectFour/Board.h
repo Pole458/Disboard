@@ -3,14 +3,13 @@
 #include "../Engine/IBoard.h"
 #include "../Engine/Game.h"
 
+#include "ConnectFour.h"
 #include "Move.h"
 #include "PossibleMoves.h"
 
 #include <string>
 #include <vector>
 
-#define WIDTH 7
-#define HEIGHT 6
 
 namespace ConnectFour
 {
@@ -19,10 +18,8 @@ namespace ConnectFour
     {
 
     public:
-        static const char space = '*';
-        static const char red = 'X';
-        static const char yellow = 'O';
 
+        
         Board();
         ~Board();
 
@@ -30,7 +27,6 @@ namespace ConnectFour
 
         Engine::IPossibleMoves *get_possible_moves();
         void make_move(Engine::IMove *move);
-        bool check_victory(Engine::IMove *last_move);
 
         void reset();
 
@@ -42,11 +38,12 @@ namespace ConnectFour
 
         void copy(IBoard *board_to_copy);
 
-    private:
-        char board[HEIGHT][WIDTH];
         BitBoard both;
         BitBoard current;
 
-        static const BitBoard upper_row = 2 ^ (WIDTH - 1); // 2 ^ 6 = 64 = 0x111111
+    private:
+        bool check_victory(BitBoard last_move_mask);
+        char board[HEIGHT][WIDTH];
+        
     };
 } // namespace ConnectFour

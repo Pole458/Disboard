@@ -1,23 +1,22 @@
 #include "PossibleMoves.h"
 
+#include <iostream>
+
 namespace ConnectFour
 {
    
     PossibleMoves::PossibleMoves(Board *board)
     {
+
+        bitboard = (~board->both) & upper_row_mask;
+
         if (board->status != Engine::IBoard::Ongoing)
         {
             _size = 0;
         }
         else
         {
-            for (int columnIndex = 0; columnIndex < WIDTH; columnIndex++)
-            {
-                if (bitboard & (2 ^ columnIndex))
-                {
-                    _size++;
-                }
-            }
+            _size = count_bits(bitboard);
         }
     }
 
@@ -32,15 +31,35 @@ namespace ConnectFour
 
     Engine::IMove *PossibleMoves::move_at(int move_index)
     {
-        int column_index = 0;
-        while (column_index < move_index)
+        BitBoard mask = 1UL;
+        for(; move_index > 0 || !(bitboard & mask); mask = mask << 1)
         {
-            if (bitboard & (2 ^ column_index))
+            if(bitboard & mask)
             {
-                column_index++;
+                move_index--;
             }
         }
 
-        return new ConnectFourMove(column_index, (BitBoard)(2 ^ column_index));
+        return new Move(mask);
+    }
+
+    std::string PossibleMoves::to_string()
+    {
+        std::string s = "";
+
+        int c = 0;
+        for (BitBoard mask = 1UL; mask & upper_row_mask; mask = mask << 1)
+        {
+            if (bitboard & mask)
+            {
+                s += ('0' + c);
+                c++;
+            }
+            else s += "-";
+
+            s += " ";
+        }
+
+        return s;
     }
 } // namespace ConnectFour

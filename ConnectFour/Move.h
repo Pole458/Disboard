@@ -1,21 +1,16 @@
 #pragma once
 
+#include "ConnectFour.h"
 #include "../Engine/IMove.h"
-#include "fwd.h"
-
-#include <string>
 
 namespace ConnectFour
 {
-
-    class ConnectFourMove : public Engine::IMove
+    class Move : public Engine::IMove
     {
     public:
-        ConnectFourMove(int column, BitBoard c);
+        Move(BitBoard c);
 
-        int column;
-
-        BitBoard bit_column;
+        BitBoard column;
 
         std::string to_string();
 

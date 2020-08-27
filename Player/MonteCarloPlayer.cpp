@@ -2,9 +2,11 @@
 
 #include "../Engine/IPossibleMoves.h"
 
-MonteCarloPlayer::MonteCarloPlayer()
+MonteCarloPlayer::MonteCarloPlayer(int rollouts, bool verbose)
 {
     player = new RandomPlayer();
+    _rollouts = rollouts;
+    _verbose = verbose;
 }
 
 MonteCarloPlayer::~MonteCarloPlayer()
@@ -21,7 +23,7 @@ Engine::IMove *MonteCarloPlayer::choose_move(Engine::IBoard *board)
 
     int max_depth = 0;
 
-    while (root.played < 10000)
+    while (root.played < _rollouts)
     {
 
         // std::cout << " -- ITERATION: " << total_played << std::endl;
@@ -130,7 +132,8 @@ Engine::IMove *MonteCarloPlayer::choose_move(Engine::IBoard *board)
     float highscore = -1;
     Node *selected_node;
 
-    std::cout << "max_depth: " << max_depth << std::endl;
+    if(_verbose)
+        std::cout << "max_depth: " << max_depth << std::endl;
 
     for (Node *n : root.children)
     {
@@ -142,7 +145,8 @@ Engine::IMove *MonteCarloPlayer::choose_move(Engine::IBoard *board)
             highscore = winrate;
         }
 
-        std::cout << n->move->to_string() << ": " << (winrate * 100) << "% played: " << n->played << " ucb: " << ucb << std::endl;
+        if(_verbose)
+            std::cout << n->move->to_string() << ": " << (winrate * 100) << "% played: " << n->played << " ucb: " << ucb << std::endl;
     }
 
     // std::cout << selected_node->move->to_string() << std::endl;
