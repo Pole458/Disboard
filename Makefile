@@ -1,5 +1,5 @@
-all: Engine.a Player.a ConnectFour.a
-	g++ -o main main.cpp Engine/Engine.a Player/Player.a ConnectFour/ConnectFour.a
+all: Engine.a Player.a ConnectFour.a MonteCarlo.a
+	g++ -o main main.cpp Engine/Engine.a Player/Player.a ConnectFour/ConnectFour.a Player/MonteCarlo/MonteCarlo.a
 
 Engine.a:
 	cd Engine; make
@@ -7,6 +7,9 @@ Engine.a:
 Player.a:
 	cd Player; make
 	
+MonteCarlo.a:
+	cd Player/MonteCarlo; make
+
 ConnectFour.a:
 	cd ConnectFour; make
 
@@ -16,3 +19,4 @@ clean:
 	cd Engine; make clean
 	cd Player; make clean
 	cd ConnectFour; make clean
+	cd Player/MonteCarlo; make clean

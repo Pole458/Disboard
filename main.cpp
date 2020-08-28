@@ -1,9 +1,9 @@
 
 #include "ConnectFour/Board.h"
 #include "Player/RandomPlayer.h"
-#include "Player/MonteCarloPlayer.h"
+#include "Player/MonteCarlo/MonteCarloPlayer.h"
 #include "Player/HumanPlayer.h"
-#include "Engine/Game.h"
+#include "Engine/Engine.h"
 
 
 #include <iostream>
@@ -28,9 +28,10 @@ void single_game()
 {
     Board board;
 
-    // MonteCarloPlayer p2;
-    RandomPlayer p2;
-    HumanPlayer p1;
+    HumanPlayer p2;
+    MonteCarloPlayer p1(1000000, true, false);
+    // RandomPlayer p2;
+    // HumanPlayer p2;
 
     Engine::play(&board, &p1, &p2, true);
 }
@@ -71,7 +72,7 @@ void test_mc(int n)
         "w/d/l: " << w << "/" << d << "/" << (n-w-d) << std::endl <<
         "avg.turns: " << (turns / n) << std::endl <<
         "time: " << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count() << "[ms]" << std::endl;
-
+        
 }
 
 void test_games(int n)
@@ -112,8 +113,8 @@ void test_games(int n)
         "winrate: " << (w + d / 2.0f) * 100 / n << "%" << std::endl <<
         "w/d/l: " << w << "/" << d << "/" << (n-w-d) << std::endl <<
         "avg.turns: " << (turns / n) << std::endl <<
-        "time: " << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count() << "[ms]" << std::endl;
-
+        "time: " << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count() << "[ms]" << std::endl <<
+        "time per game: " << (std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count() / n) << " [ns] per game" << std::endl;
 }
 
 void test_random(int n, int width)
@@ -141,15 +142,27 @@ int main()
     // Set up rng
     srand(time(NULL));
 
-    // single_game();
+    // for(int i = 0; i < 1000000; i++)
+    // {
+    //     Board board;
+    //     RandomPlayer p1;
+
+    //     Engine::play(&board, &p1, &p1);
+        
+    //     if(board.current != get_flipped_bitboard(get_flipped_bitboard(board.current)))
+    //         std::cout << bitboard_to_string(board.current) << std::endl;
+    // }
+    
+
+    single_game();
 
     // test_random(1000, 7);
 
     // test_cf();
 
-    test_mc(1);
+    // test_mc(1);
 
-    // test_games(10000);
+    // test_games(100000);
 
     return 0;
 }

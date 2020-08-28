@@ -1,10 +1,10 @@
 all: Engine.a
 
-Engine.a: Game.o
+Engine.a: Engine.o
 	ar -rv $@ $^
 
-Game.o: Game.cpp Game.h
-	g++ -c Game.cpp
+Engine.o: Engine.cpp Engine.h
+	g++ -c Engine.cpp
 
 clean:
 	rm -f *.o

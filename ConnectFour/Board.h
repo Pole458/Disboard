@@ -1,7 +1,7 @@
 #pragma once
 
 #include "../Engine/IBoard.h"
-#include "../Engine/Game.h"
+#include "../Engine/Engine.h"
 
 #include "ConnectFour.h"
 #include "Move.h"
@@ -34,6 +34,8 @@ namespace ConnectFour
         IBoard *get_copy();
 
         void copy(IBoard *board_to_copy);
+
+        Engine::board_id get_id();
 
         BitBoard both;
         BitBoard current;

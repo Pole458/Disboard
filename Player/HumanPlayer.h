@@ -1,6 +1,6 @@
 #pragma once
 
-#include "IPlayer.h"
+#include "../Engine/IPlayer.h"
 
 class HumanPlayer : public IPlayer
 {

@@ -43,7 +43,6 @@ namespace ConnectFour
 
         Board *btc = ((Board *)board_to_copy);
 
-        // Bitboard
         both = btc->both;
         current = btc->current;
     }
@@ -55,18 +54,18 @@ namespace ConnectFour
         Color current_color;
         Color opposite_color;
 
-        if (turn % 2)
-        {
-            current_color = yellow;
-            opposite_color = red;
-        }
-        else
+        if (turn % 2 == 0)
         {
             current_color = red;
             opposite_color = yellow;
         }
+        else
+        {
+            current_color = yellow;
+            opposite_color = red;
+        }
 
-        for (int row_index = HEIGHT - 1; row_index >= 0; row_index--)
+        for (int row_index = HEIGHT - 2; row_index >= 0; row_index--)
         {
             for (int column_index = 0; column_index < WIDTH; column_index++)
             {
@@ -94,12 +93,12 @@ namespace ConnectFour
     void Board::make_move(Engine::IMove *move)
     {
         int column_index = ((Move *)move)->column;
-
+        
         both |= both + bottom_mask(column_index);
 
-        if (check_victory(current))
+        if (check_victory(both & (~current)))
         {
-            status = (turn % 2 == 0 ? IBoard::First : IBoard::Second);
+            status = (turn % 2 ? IBoard::First : IBoard::Second);
         }
         else if (turn == 42)
         {
@@ -115,5 +114,17 @@ namespace ConnectFour
     bool Board::should_keep_going()
     {
         return status == IBoard::Ongoing;
+    }
+
+    Engine::board_id Board::get_id()
+    {
+        // return both + current + bottom_row_mask;
+        
+        // BitBoard flipped_both = get_flipped_bitboard(both);
+        // BitBoard flipper_current = get_flipped_bitboard(current);
+
+        BitBoard key = both + current + bottom_row_mask;
+        BitBoard flipped_key = get_flipped_bitboard(key);
+        return key < flipped_key ? key : flipped_key;
     }
 } // namespace ConnectFour

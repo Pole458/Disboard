@@ -31,17 +31,16 @@ namespace ConnectFour
 
     Engine::IMove *PossibleMoves::move_at(int move_index)
     {
-        BitBoard mask = (1UL << (HEIGHT - 1)) << (HEIGHT * move_index);
-        int columm_index = move_index;
-        for(; !(bitboard & mask); mask <<= HEIGHT, columm_index++);
+        BitBoard mask = 1UL << (HEIGHT - 2);
+        int columm_index = 0;
 
-        // for(; move_index > 0 || !(bitboard & mask); mask <<= WIDTH)
-        // {
-        //     if(bitboard & mask)
-        //     {
-        //         move_index--;
-        //     }
-        // }
+        for(; move_index > 0 || !(bitboard & mask); mask <<= HEIGHT, columm_index++)
+        {
+            if((bitboard & mask))
+            {
+                move_index--;
+            }
+        }
 
         return new Move(columm_index);
     }

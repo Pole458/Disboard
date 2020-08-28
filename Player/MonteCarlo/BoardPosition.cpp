@@ -1,50 +1,41 @@
-#include "Node.h"
+#include "BoardPosition.h"
 
 #include "math.h"
-#include <iostream>
 #include <limits>
 
-Node::Node(Engine::IBoard* board, Engine::IMove* move, Node* parent)
+BoardPosition::BoardPosition()
 {
-    this->board = board;
-    this->move = move;
-    this->parent = parent;
-
+    id = 0UL;
     played = 0;
     score = 0;
 }
 
-Node::~Node()
+BoardPosition::BoardPosition(Engine::board_id board_id)
 {
-    delete board;
-    delete move;
-
-    for(auto child : children)
-    {
-        delete child;
-    }
-    children.clear();
+    id = board_id;
+    played = 0;
+    score = 0;
 }
 
-float Node::get_ucb(int total_played)
+float BoardPosition::get_ucb(int total_played)
 {
     if(played == 0) return std::numeric_limits<float>::max();
     return score / played + 2 * sqrt(log(total_played) / played);
 }
 
-float Node::get_inverse_ucb(int total_played)
+float BoardPosition::get_inverse_ucb(int total_played)
 {
     if(played == 0) return std::numeric_limits<float>::max();
     return (played - score) / played + 2 * sqrt(log(total_played) / played);
 }
 
-float Node::get_winrate()
+float BoardPosition::get_winrate()
 {
     if(played == 0) return std::numeric_limits<float>::max();
     return score / played;
 }
 
-float Node::get_inverse_winrate()
+float BoardPosition::get_inverse_winrate()
 {
     if(played == 0) return std::numeric_limits<float>::max();
     return (played - score) / played;

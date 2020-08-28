@@ -1,10 +1,10 @@
 #pragma once
 
+#include "BoardId.h"
 #include "IMove.h"
 #include "IPossibleMoves.h"
 
 #include <string>
-#include <vector>
 
 // Interface for a Board. Stores the state of the game
 
@@ -27,6 +27,7 @@ namespace Engine
 
         Status status;
 
+
         virtual IPossibleMoves *get_possible_moves() = 0;
         virtual void make_move(IMove *move) = 0;
 
@@ -39,5 +40,7 @@ namespace Engine
         virtual IBoard *get_copy() = 0;
 
         virtual void copy(IBoard *board_to_copy) = 0;
+
+        virtual board_id get_id() = 0;
     };
 } // namespace Engine
