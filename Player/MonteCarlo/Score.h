@@ -2,13 +2,11 @@
 
 #include "../../Engine/Engine.h"
 
-class BoardPosition
+class Score
 {
 public:
-    BoardPosition();
-    BoardPosition(Engine::board_id id);
+    Score();
 
-    Engine::board_id id;
     float played;
     float score;
 

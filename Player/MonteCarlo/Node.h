@@ -12,6 +12,7 @@ public:
     Engine::IMove *move;
 
     bool is_leaf;
+    bool expanded;
 
     // Cached values
     Engine::board_id id;

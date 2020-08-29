@@ -1,6 +1,6 @@
 all: MonteCarlo.a
 
-MonteCarlo.a: MonteCarloPlayer.o Node.o BoardPosition.o
+MonteCarlo.a: MonteCarloPlayer.o Node.o Score.o
 	ar -rv $@ $^
 
 MonteCarloPlayer.o: MonteCarloPlayer.h MonteCarloPlayer.cpp
@@ -9,8 +9,8 @@ MonteCarloPlayer.o: MonteCarloPlayer.h MonteCarloPlayer.cpp
 Node.o: Node.h Node.cpp
 	g++ -c Node.cpp
 
-BoardPosition.o: BoardPosition.h BoardPosition.cpp
-	g++ -c BoardPosition.cpp
+Score.o: Score.h Score.cpp
+	g++ -c Score.cpp
 
 clean:
 	rm -f *.o

@@ -3,6 +3,9 @@
 #include "../RandomPlayer.h"
 #include "../../Engine/Engine.h"
 #include "Node.h"
+#include "Score.h"
+
+#include <unordered_map>
 
 class MonteCarloPlayer : public IPlayer
 {
