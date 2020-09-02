@@ -127,4 +127,9 @@ namespace ConnectFour
         BitBoard flipped_key = get_flipped_bitboard(key);
         return key < flipped_key ? key : flipped_key;
     }
+
+    int Board::get_score()
+    {
+        return ConnectFour::get_score(both & (~current)) - ConnectFour::get_score(both & current);
+    }
 } // namespace ConnectFour

@@ -27,7 +27,6 @@ namespace Engine
 
         Status status;
 
-
         virtual IPossibleMoves *get_possible_moves() = 0;
         virtual void make_move(IMove *move) = 0;
 
@@ -42,5 +41,7 @@ namespace Engine
         virtual void copy(IBoard *board_to_copy) = 0;
 
         virtual board_id get_id() = 0;
+
+        virtual int get_score() = 0;
     };
 } // namespace Engine

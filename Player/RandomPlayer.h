@@ -2,8 +2,10 @@
 
 #include "../Engine/IPlayer.h"
 
+#include "../Pcg/pcg_random.hpp"
+
 #include <vector>
-#include <iostream>
+#include <random>
 
 // Class for a Random player
 
@@ -14,4 +16,7 @@ class RandomPlayer : public IPlayer
 		~RandomPlayer();
 
 		Engine::IMove* choose_move(Engine::IBoard* board);
+
+	private:
+		pcg32 rng;
 };

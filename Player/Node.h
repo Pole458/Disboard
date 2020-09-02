@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../../Engine/IBoard.h"
+#include "../Engine/IBoard.h"
 
 class Node
 {
@@ -8,10 +8,13 @@ public:
     Node(Engine::IBoard *board, Engine::IMove *move = NULL, Node *parent = NULL);
     ~Node();
 
+    void expand();
+    void reduce();
+    bool is_leaf();
+
     Engine::IBoard *board;
     Engine::IMove *move;
 
-    bool is_leaf;
     bool expanded;
 
     // Cached values

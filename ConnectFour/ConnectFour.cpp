@@ -77,6 +77,81 @@ namespace ConnectFour
         return false;
     }
 
+    int get_score(BitBoard bitboard)
+    {
+        int score = 0;
+
+        // Check 4
+
+        // Horizontal -
+        BitBoard mask = bitboard & (bitboard >> (HEIGHT));
+        mask = mask & (mask >> (2 * (HEIGHT)));
+        score = count_bits(mask);
+        if(score > 0) return 10000;
+
+        // Diagonal 
+        mask = bitboard & (bitboard >> (HEIGHT - 1));
+        mask = mask & (mask >> (2 * (HEIGHT - 1)));
+        score = count_bits(mask);
+        if(score > 0) return 10000;
+
+        // Diagonal /
+        mask = bitboard & (bitboard >> (HEIGHT + 1));
+        mask = mask & (mask >> (2 * (HEIGHT + 1)));
+        score = count_bits(mask);
+        if(score > 0) return 10000;
+
+        // Vertical |
+        mask = bitboard & (bitboard >> 1);
+        mask = mask & (mask >> 2);
+        score = count_bits(mask);
+        if(score > 0) return 10000;
+
+        // Check 3
+
+        score = 0;
+
+        // Horizontal -
+        mask = bitboard & (bitboard >> (HEIGHT));
+        mask = mask & (mask >> (1 * (HEIGHT)));
+        score += count_bits(mask) * 100;
+
+        // Diagonal 
+        mask = bitboard & (bitboard >> (HEIGHT - 1));
+        mask = mask & (mask >> (1 * (HEIGHT - 1)));
+        score += count_bits(mask) * 100;
+
+        // Diagonal /
+        mask = bitboard & (bitboard >> (HEIGHT + 1));
+        mask = mask & (mask >> (1 * (HEIGHT + 1)));
+        score += count_bits(mask) * 100;
+
+        // Vertical |
+        mask = bitboard & (bitboard >> 1);
+        mask = mask & (mask >> 1);
+        score += count_bits(mask) * 100;
+
+        // Check 2
+
+        // Horizontal -
+        mask = bitboard & (bitboard >> (HEIGHT));
+        score += count_bits(mask);
+
+        // Diagonal 
+        mask = bitboard & (bitboard >> (HEIGHT - 1));
+        score += count_bits(mask);
+
+        // Diagonal /
+        mask = bitboard & (bitboard >> (HEIGHT + 1));
+        score += count_bits(mask);
+
+        // Vertical |
+        mask = bitboard & (bitboard >> 1);
+        score += count_bits(mask);
+
+        return score;
+    }
+
     BitBoard get_flipped_bitboard(BitBoard bitboard)
     {
         BitBoard m1 = bitboard & k1;

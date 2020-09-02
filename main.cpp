@@ -1,35 +1,28 @@
 
 #include "ConnectFour/Board.h"
 #include "Player/RandomPlayer.h"
-#include "Player/MonteCarlo/MonteCarloPlayer.h"
+#include "Player/MonteCarloPlayer.h"
 #include "Player/HumanPlayer.h"
 #include "Engine/Engine.h"
+#include "Player/MiniMaxPlayer.h"
 
+#include "Pcg/pcg_random.hpp"
 
 #include <iostream>
 #include <chrono>
+#include <random>
 
 // Change namespace to change game
 using namespace ConnectFour;
-
-// void test_cf()
-// {
-//     Board board;
-//     for(int i = 0; i < 42; i++)
-//     {
-//         board.both = 1;
-//         board.both = board.both << i;
-//         board.current = board.both;
-//         std::cout << i << ": " << board.to_string() << std::endl;
-//     }
-// }
 
 void single_game()
 {
     Board board;
 
     HumanPlayer p2;
-    MonteCarloPlayer p1(1000000, true, false);
+    // MonteCarloPlayer p2(10000, true, false);
+    // MiniMaxPlayer p2(7, true);
+    MiniMaxPlayer p1(12, true);
     // RandomPlayer p2;
     // HumanPlayer p2;
 
@@ -44,7 +37,7 @@ void test_mc(int n)
 
     Board board;
 
-    MonteCarloPlayer p1(100000, true);
+    MonteCarloPlayer p1(10000, true);
     // RandomPlayer p1;
     HumanPlayer p2;
 
@@ -84,7 +77,9 @@ void test_games(int n)
 
     Board board;
 
-    RandomPlayer p1;
+    // RandomPlayer p1;
+    MiniMaxPlayer p1(3);
+    // MonteCarloPlayer p2(1000);
     RandomPlayer p2;
 
     time_t start_time = time(NULL);
@@ -93,7 +88,6 @@ void test_games(int n)
 
     for(int i = 0; i < n; i++)
     {
-
         Engine::play(&board, &p1, &p2, false);
     
         if(board.status == Engine::IBoard::First)
@@ -119,6 +113,13 @@ void test_games(int n)
 
 void test_random(int n, int width)
 {
+
+    // Seed with a real random value, if available
+    pcg_extras::seed_seq_from<std::random_device> seed_source;
+
+    // Make a random number engine
+    pcg32 rng(seed_source);
+
     int row[width];
 
     for(int i = 0; i < width; i++)
@@ -128,7 +129,7 @@ void test_random(int n, int width)
 
     for(int i = 0; i < n * width; i++)
     {
-        row[rand() % width]++;
+        row[rng(width)]++;
     }
 
     for(int i = 0; i < width; i++)
@@ -141,19 +142,7 @@ int main()
 {
     // Set up rng
     srand(time(NULL));
-
-    // for(int i = 0; i < 1000000; i++)
-    // {
-    //     Board board;
-    //     RandomPlayer p1;
-
-    //     Engine::play(&board, &p1, &p1);
-        
-    //     if(board.current != get_flipped_bitboard(get_flipped_bitboard(board.current)))
-    //         std::cout << bitboard_to_string(board.current) << std::endl;
-    // }
     
-
     single_game();
 
     // test_random(1000, 7);
@@ -162,7 +151,7 @@ int main()
 
     // test_mc(1);
 
-    // test_games(100000);
+    // test_games(1000);
 
     return 0;
 }

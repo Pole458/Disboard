@@ -49,6 +49,8 @@
         "typeinfo": "cpp",
         "cerrno": "cpp",
         "ios": "cpp",
-        "queue": "cpp"
+        "queue": "cpp",
+        "cinttypes": "cpp",
+        "cstring": "cpp"
     }
 }

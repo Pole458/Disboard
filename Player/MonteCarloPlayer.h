@@ -1,7 +1,7 @@
 #pragma once
 
-#include "../RandomPlayer.h"
-#include "../../Engine/Engine.h"
+#include "RandomPlayer.h"
+#include "../Engine/Engine.h"
 #include "Node.h"
 #include "Score.h"
 

@@ -37,6 +37,8 @@ namespace ConnectFour
 
         Engine::board_id get_id();
 
+        int get_score();
+
         BitBoard both;
         BitBoard current;
     };

@@ -7,15 +7,14 @@ namespace ConnectFour
    
     PossibleMoves::PossibleMoves(Board *board)
     {
-
-        bitboard = (~board->both) & upper_row_mask;
-
         if (board->status != Engine::IBoard::Ongoing)
         {
+            bitboard = 0UL;
             _size = 0;
         }
         else
         {
+            bitboard = (~board->both) & upper_row_mask;
             _size = count_bits(bitboard);
         }
     }

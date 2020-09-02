@@ -1,6 +1,6 @@
 #include "MonteCarloPlayer.h"
 
-#include "../../Engine/IPossibleMoves.h"
+#include "../Engine/IPossibleMoves.h"
 
 
 MonteCarloPlayer::MonteCarloPlayer(int rollouts, bool verbose, bool step_by_step)
@@ -31,8 +31,8 @@ Engine::IMove *MonteCarloPlayer::choose_move(Engine::IBoard *board)
 
     std::unordered_map<Engine::board_id, Score> scores;
 
-    // while (count < _rollouts)
-    while (scores[root.id].played < _rollouts)
+    while (count < _rollouts)
+    // while (scores[root.id].played < _rollouts)
     {
 
         Node *node = &root;
@@ -43,7 +43,7 @@ Engine::IMove *MonteCarloPlayer::choose_move(Engine::IBoard *board)
         if (_step_by_step)
             std::cout << " 1) Traversing tree:\n    " << node->id;
 
-        while (!node->is_leaf)
+        while (node->expanded)
         {
 
             Node *selected_node;
@@ -94,21 +94,7 @@ Engine::IMove *MonteCarloPlayer::choose_move(Engine::IBoard *board)
             std::cout << " 2) Expanding node " << node->id << ":\n    children: ";
 
         // Expand
-        
-        if (node->possible_moves->size() > 0)
-        {
-            node->children = new Node*[node->possible_moves->size()];
-            for (int i = 0; i < node->possible_moves->size(); i++)
-            {
-                Node *child = new Node(node->board->get_copy(), node->possible_moves->move_at(i), node);
-                node->children[i] = child;
-
-                if (_step_by_step)
-                    std::cout << child->move->to_string() << ": " << child->id << " ";
-            }
-            node->is_leaf = false;
-            node->expanded = true;
-        }
+        node->expand();
 
         if (_step_by_step)
             std::cout << std::endl;
@@ -119,6 +105,7 @@ Engine::IMove *MonteCarloPlayer::choose_move(Engine::IBoard *board)
         Engine::play(test_board, player, player);
 
         float gain = 0;
+        int played = 1;
         if (test_board->status == Engine::IBoard::Draw)
         {
             gain = 0.5f;
@@ -140,7 +127,7 @@ Engine::IMove *MonteCarloPlayer::choose_move(Engine::IBoard *board)
         do
         {
             scores[node->id].score += gain;
-            scores[node->id].played += 1;
+            scores[node->id].played += played;
 
             if (_step_by_step)
                 std::cout << "    " << node->id << ": " << scores[node->id].score << "/" << scores[node->id].played << std::endl;
