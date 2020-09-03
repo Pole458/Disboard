@@ -11,14 +11,15 @@ class MonteCarloPlayer : public IPlayer
 {
 
 public:
-    MonteCarloPlayer(int rollouts, bool verbose = false, bool step_by_step = false);
-    ~MonteCarloPlayer();
-
+    MonteCarloPlayer(int rollouts, bool verbose = false);
     Engine::IMove *choose_move(Engine::IBoard *board);
 
 private:
-    RandomPlayer *player;
-    int _rollouts;
-    bool _verbose;
-    bool _step_by_step;
+    // Internal random player used to for random rollout
+    RandomPlayer player;
+
+    // Number to rollout needed to choose a move
+    int rollouts;
+
+    bool verbose;
 };

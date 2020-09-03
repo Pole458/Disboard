@@ -1,48 +1,39 @@
 #include "MonteCarloPlayer.h"
-
 #include "../Engine/IPossibleMoves.h"
 
-
-MonteCarloPlayer::MonteCarloPlayer(int rollouts, bool verbose, bool step_by_step)
+MonteCarloPlayer::MonteCarloPlayer(int rollouts, bool verbose)
 {
-    player = new RandomPlayer();
-    _rollouts = rollouts;
-    _verbose = verbose;
-    _step_by_step = step_by_step;
-}
-
-MonteCarloPlayer::~MonteCarloPlayer()
-{
-    delete player;
+    this->rollouts = rollouts;
+    this->verbose = verbose;
 }
 
 Engine::IMove *MonteCarloPlayer::choose_move(Engine::IBoard *board)
 {
-
-    Node root = Node(board->get_copy());
-
+    //
     int my_turn = board->turn % 2;
-    int max_depth = 0;
 
-    if (_step_by_step)
-        std::cout << "Root node: " << root.id << std::endl << std::endl;
+    int max_depth_reached = 0;
 
-    int count = 0;
+    int iterations = 0;
 
+    // Hash map used to store scoring for each possible board configuration.
     std::unordered_map<Engine::board_id, Score> scores;
 
-    while (count < _rollouts)
-    // while (scores[root.id].played < _rollouts)
-    {
+    // Creates root node for the game-tree starting from the current board configuration.
+    Node root = Node(board->get_copy());
 
+    while (iterations < rollouts)
+    {
         Node *node = &root;
 
-        // Tree traversing
+        // 1) Tree traversing
+        // Search for the most interesting node to be tested.
+        // Starting from the root node, select the children node with the best ucb value
+        // Repeat until we found a node not yet expanded
+
         int depth = 0;
 
-        if (_step_by_step)
-            std::cout << " 1) Traversing tree:\n    " << node->id;
-
+        // Keep searching for a node not yet expanded
         while (node->expanded)
         {
 
@@ -52,6 +43,7 @@ Engine::IMove *MonteCarloPlayer::choose_move(Engine::IBoard *board)
 
             if (node->board->turn % 2 == my_turn)
             {
+                // If it's my turn, use the ucb value that maximize my winrate
                 for (int i = 0; i < node->possible_moves->size(); i++)
                 {
                     Node *n = node->children[i];
@@ -65,6 +57,7 @@ Engine::IMove *MonteCarloPlayer::choose_move(Engine::IBoard *board)
             }
             else
             {
+                // If it's my opponent's turn, use the ucb value that minimize my winrate
                 for (int i = 0; i < node->possible_moves->size(); i++)
                 {
                     Node *n = node->children[i];
@@ -77,81 +70,84 @@ Engine::IMove *MonteCarloPlayer::choose_move(Engine::IBoard *board)
                 }
             }
 
-            if (_step_by_step)
-                std::cout << " -> " << node->id;
-
             depth++;
             node = selected_node;
         }
 
-        if (_step_by_step)
-            std::cout << std::endl;
+        if (max_depth_reached < depth)
+            max_depth_reached = depth;
 
-        if (max_depth < depth)
-            max_depth = depth;
-
-        if (_step_by_step)
-            std::cout << " 2) Expanding node " << node->id << ":\n    children: ";
-
-        // Expand
-        node->expand();
-
-        if (_step_by_step)
-            std::cout << std::endl;
-
-        // Rollout
-
-        Engine::IBoard *test_board = node->board->get_copy();
-        Engine::play(test_board, player, player);
+        // 2) Expansion
+        // If this node it's not a terminal node, expand it
 
         float gain = 0;
         int played = 1;
-        if (test_board->status == Engine::IBoard::Draw)
+
+        if (!node->is_leaf())
         {
-            gain = 0.5f;
+            node->expand();
+
+            // Pick one children node
+            node = node->children[0];
+
+            // 3) Rollout
+            // Simulate a random game from the node's board configuration
+
+            Engine::IBoard *test_board = node->board->get_copy();
+            Engine::play(test_board, &player, &player);
+
+            // Node the board is in a terminal state, get the outcome
+            if (test_board->status == Engine::IBoard::Draw)
+            {
+                gain = 0.5f;
+            }
+            else if ((my_turn == 1 && test_board->status == Engine::IBoard::First) || (my_turn == 0 && test_board->status == Engine::IBoard::Second))
+            {
+                gain = 1;
+            }
+
+            delete test_board;
         }
-        else if ((test_board->status == Engine::IBoard::First && my_turn == 1) || (test_board->status == Engine::IBoard::Second && my_turn == 0))
+        else
         {
-            gain = 1;
+            // Node it's a terminal node, get the outcome
+            if (node->board->status == Engine::IBoard::Draw)
+            {
+                gain = 0.5f;
+            }
+            else if ((my_turn == 1 && node->board->status == Engine::IBoard::First) || (my_turn == 0 && node->board->status == Engine::IBoard::Second))
+            {
+                gain = 1;
+            }
         }
 
-        delete test_board;
-
-        if (_step_by_step)
-            std::cout << " 3) Rollout: " << gain << std::endl;
-
-        if (_step_by_step)
-            std::cout << " 4) Backpropagation:" << std::endl;
-
-        // Backprob
-        do
+        // 4) Backpropagation
+        // Backpropagate the outcome to parent node until we reach the root node
+        while (node != NULL)
         {
+            // Update node's values
             scores[node->id].score += gain;
             scores[node->id].played += played;
 
-            if (_step_by_step)
-                std::cout << "    " << node->id << ": " << scores[node->id].score << "/" << scores[node->id].played << std::endl;
-
+            // Go to parent
             node = node->parent;
-            depth--;
-        } while (node != NULL);
+        }
 
-        if (_step_by_step)
-            std::cin.get();
-
-        count++;
+        iterations++;
     }
 
-    // Select best move
-    float highscore = -1;
-    Node *selected_node;
+    // Now we can select the move with the highest winrate
 
-    if (_verbose)
+    if (verbose)
     {
-        std::cout << "max_depth: " << max_depth << std::endl
-            << "current win rate: " << scores[root.id].get_winrate() << "%" << std::endl;
+        std::cout << "Max Depth: " << max_depth_reached << std::endl
+                  << "Current win rate: " << (scores[root.id].get_winrate() * 100) << "%" << std::endl;
     }
 
+    Node *selected_node;
+    float highscore = -1;
+
+    // Select the node children of root with the best winrate
     for (int i = 0; i < root.possible_moves->size(); i++)
     {
         Node *n = root.children[i];
@@ -163,7 +159,7 @@ Engine::IMove *MonteCarloPlayer::choose_move(Engine::IBoard *board)
             highscore = winrate;
         }
 
-        if (_verbose)
+        if (verbose)
             std::cout << n->move->to_string() << ": " << (winrate * 100) << "% played: " << scores[n->id].played << " ucb: " << ucb << std::endl;
     }
 

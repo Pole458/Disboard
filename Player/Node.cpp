@@ -40,7 +40,7 @@ Node::~Node()
 
 bool Node::is_leaf()
 {
-    return board->get_possible_moves()->size() == 0;
+    return possible_moves->size() == 0;
 }
 
 void Node::expand()

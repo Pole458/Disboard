@@ -4,7 +4,7 @@
 
 class Node
 {
-public:
+public: 
     Node(Engine::IBoard *board, Engine::IMove *move = NULL, Node *parent = NULL);
     ~Node();
 

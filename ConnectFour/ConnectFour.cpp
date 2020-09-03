@@ -107,6 +107,7 @@ namespace ConnectFour
         score = count_bits(mask);
         if(score > 0) return 10000;
 
+
         // Check 3
 
         score = 0;

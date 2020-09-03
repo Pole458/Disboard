@@ -5,124 +5,136 @@
 
 MiniMaxPlayer::MiniMaxPlayer(int depth, bool verbose)
 {
-    _depth = depth;
-    _verbose = verbose;
+    this->max_depth = depth;
+    this->verbose = verbose;
 }
 
-Engine::IMove* MiniMaxPlayer::choose_move(Engine::IBoard* board)
+Engine::IMove *MiniMaxPlayer::choose_move(Engine::IBoard *board)
 {
 
-    scores.clear();
-
-    Node root(board->get_copy());
-
-    visited_nodes = 0;
+    // Reset analytcs values
+    nodes_evaluated = 0;
     pruned = 0;
-    reflected = 0;
+    cached = 0;
 
-    int highscore = std::numeric_limits<int>::min(); 
+    int highscore = std::numeric_limits<int>::min();
     int alpha = std::numeric_limits<int>::min();
     int beta = std::numeric_limits<int>::max();
-    
-    root.expand();
-    Node *node = root.children[0];
-    for(int i = 0; i < root.possible_moves->size(); i++)
-    {
-        int score = minimize(root.children[i], _depth - 1, alpha, beta); 
 
-        if(_verbose)
+    Node root(board->get_copy());
+    root.expand();
+    Engine::IMove *selected_move = NULL;
+    // Search for the children node with the maximum score
+    for (int i = 0; i < root.possible_moves->size(); i++)
+    {
+        int score = minimize(root.children[i], max_depth - 1, alpha, beta);
+
+        if (verbose)
             std::cout << root.children[i]->move->to_string() << " score: " << score << std::endl;
 
-        if(score > highscore)
+        if (score > highscore)
         {
             highscore = score;
-            node = root.children[i];
-        }        
-
-        if(beta <= alpha)
-        {
-            pruned++;
-            break;
+            selected_move = root.children[i]->move;
         }
     }
 
-    std::cout << "Nodes visited " << visited_nodes << std::endl;
-    std::cout << "Pruned: " << pruned << std::endl;
-    std::cout << "Reflected: " << reflected << std::endl;
+    if (verbose)
+    {
+        std::cout << "Nodes visited " << nodes_evaluated << std::endl
+                  << "Pruned: " << pruned << std::endl
+                  << "Cache hits " << cached << std::endl;
+    }
 
-    return node->move->get_copy();
+    // Clear caches
+    scores.clear();
+    evaluated.clear();
+
+    return selected_move->get_copy();
 }
 
-int MiniMaxPlayer::maximize(Node* node, int depth, int alpha, int beta)
+int MiniMaxPlayer::maximize(Node *node, int depth, int alpha, int beta)
 {
 
-    if(depth == 0 || node->is_leaf())
+    // If this board position has already been evaluated, return the cached value
+    if (evaluated[node->id])
     {
-        if(scores[node->id] == 0)
-        {
-            scores[node->id] = -node->board->get_score();
-        }
-        else
-        {
-            reflected++;
-        }
-
+        cached++;
         return scores[node->id];
     }
 
-    visited_nodes++;
+    nodes_evaluated++;
+
+    if (depth == 0 || node->is_leaf())
+    {
+        // If node is terminal or max depth was reached, evaluate board configuration
+        scores[node->id] = -node->board->get_score();
+        evaluated[node->id] = true;
+        return scores[node->id];
+    }
 
     node->expand();
     int highscore = std::numeric_limits<int>::min();
-    for(int i = 0; i < node->possible_moves->size(); i++)
+    // Search for the children node with the maximum score
+    for (int i = 0; i < node->possible_moves->size(); i++)
     {
         highscore = std::max(highscore, minimize(node->children[i], depth - 1, alpha, beta));
-        
+
+        // Prune search
         alpha = std::max(alpha, highscore);
-        if(beta <= alpha)
+        if (beta <= alpha)
         {
             pruned++;
             break;
         }
     }
     node->reduce();
+
+    scores[node->id] = highscore;
+    evaluated[node->id] = true;
 
     return highscore;
 }
 
-int MiniMaxPlayer::minimize(Node* node, int depth, int alpha, int beta)
+int MiniMaxPlayer::minimize(Node *node, int depth, int alpha, int beta)
 {
 
-    if(depth == 0 || node->is_leaf())
+    // If this board position has already been evaluated, return the cached value
+    if (evaluated[node->id])
     {
-        if(scores[node->id] == 0)
-        {
-            scores[node->id] = node->board->get_score();
-        }
-        else
-        {
-            reflected++;
-        }
-
+        cached++;
         return scores[node->id];
     }
-    
-    visited_nodes++;
+
+    if (depth == 0 || node->is_leaf())
+    {
+        // If node is terminal or max depth was reached, evaluate board configuration
+        scores[node->id] = node->board->get_score();
+        evaluated[node->id] = true;
+        return scores[node->id];
+    }
+
+    nodes_evaluated++;
 
     node->expand();
     int lowscore = std::numeric_limits<int>::max();
-    for(int i = 0; i < node->possible_moves->size(); i++)
+    // Search for the children node with the minimum score
+    for (int i = 0; i < node->possible_moves->size(); i++)
     {
         lowscore = std::min(lowscore, maximize(node->children[i], depth - 1, alpha, beta));
-        
+
+        // Prune search
         beta = std::min(beta, lowscore);
-        if(beta <= alpha)
+        if (beta <= alpha)
         {
             pruned++;
             break;
         }
     }
     node->reduce();
+
+    scores[node->id] = lowscore;
+    evaluated[node->id] = true;
 
     return lowscore;
 }
