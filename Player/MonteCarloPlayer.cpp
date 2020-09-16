@@ -1,6 +1,8 @@
 #include "MonteCarloPlayer.h"
 #include "../Engine/IPossibleMoves.h"
 
+#include <chrono>
+
 MonteCarloPlayer::MonteCarloPlayer(int rollouts, bool verbose)
 {
     this->rollouts = rollouts;
@@ -15,6 +17,7 @@ MonteCarloPlayer::MonteCarloPlayer(int rollouts, bool verbose)
 
 Engine::IMove *MonteCarloPlayer::choose_move(Engine::IBoard *board)
 {
+    
     int my_turn = board->turn % 2;
 
     int max_depth_reached = 0;
@@ -26,6 +29,8 @@ Engine::IMove *MonteCarloPlayer::choose_move(Engine::IBoard *board)
 
     // Creates root node for the game-tree starting from the current board configuration.
     Node root = Node(board->get_copy());
+
+    std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
 
     while (iterations < rollouts)
     {
@@ -141,12 +146,15 @@ Engine::IMove *MonteCarloPlayer::choose_move(Engine::IBoard *board)
         iterations++;
     }
 
+    std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
+
     // Now we can select the move with the highest winrate
 
     if (verbose)
     {
         std::cout << "Max Depth: " << max_depth_reached << std::endl
-                  << "Current win rate: " << (scores[root.id].get_winrate() * 100) << "%" << std::endl;
+                  << "Current win rate: " << (scores[root.id].get_winrate() * 100) << "%" << std::endl
+                  << "Time: " << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count() << " [ms]" << std::endl;
     }
 
     Node *selected_node;

@@ -31,7 +31,7 @@ public:
 
 private:
     omp_lock_t lock;
-    bool expanded;
 
+    bool expanded;
     bool under_rollout;
 };

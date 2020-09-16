@@ -2,6 +2,7 @@
 #include "../Engine/IPossibleMoves.h"
 
 #include <string>
+#include <chrono>
 
 PMonteCarloPlayer::PMonteCarloPlayer(int rollouts, bool verbose)
 {
@@ -24,10 +25,15 @@ Engine::IMove *PMonteCarloPlayer::choose_move(Engine::IBoard *board)
     // Hash map used to store scoring for each possible board configuration.
     std::unordered_map<Engine::board_id, PScore> scores;
 
+    omp_lock_t scores_lock;
+    omp_init_lock(&scores_lock);
+
     // Creates root node for the game-tree starting from the current board configuration.
     PNode root = PNode(board->get_copy());
+    
+    // omp_set_num_threads(2);
 
-    omp_set_num_threads(3);
+    std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
 
     #pragma omp parallel for reduction(max:max_depth_reached)
     for(int iterations = 0; iterations < rollouts; iterations++)
@@ -41,10 +47,17 @@ Engine::IMove *PMonteCarloPlayer::choose_move(Engine::IBoard *board)
 
         int depth = 0;
 
-        omp_set_lock(&debug);
-        std::cout << omp_get_thread_num() << " iteration " << iterations << "\n";
-        std::cout.flush();
-        omp_unset_lock(&debug);
+        // omp_set_lock(&debug);
+        // std::cout << omp_get_thread_num() << " request 0 " << node->id << std::endl;
+        // std::cout.flush();
+        // omp_unset_lock(&debug);
+
+        omp_set_lock(&node->lock);
+
+        // omp_set_lock(&debug);
+        // std::cout << omp_get_thread_num() << "     set 0 " << node->id << std::endl;
+        // std::cout.flush();
+        // omp_unset_lock(&debug);
 
         // Keep searching for a node not yet expanded
         while (node->is_expanded())
@@ -59,22 +72,32 @@ Engine::IMove *PMonteCarloPlayer::choose_move(Engine::IBoard *board)
                 PNode *n = node->children[i];
 
                 // Check if node is being tested
-                if(!n->is_under_rollout())
+                if(omp_test_lock(&n->lock))
                 {                 
                     if (node->board->turn % 2 == my_turn)
                     {
                         // If it's my turn, use the ucb value that maximize my winrate
+                        omp_set_lock(&scores_lock);
                         score = scores[n->id].get_ucb(scores[root.id].get_played());
+                        omp_unset_lock(&scores_lock);
                     }
                     else
                     {
+                        omp_set_lock(&scores_lock);
                         // If it's my opponent's turn, use the ucb value that minimize my winrate
                         score = scores[n->id].get_inverse_ucb(scores[root.id].get_played());
+                        omp_unset_lock(&scores_lock);
                     }
+
+                    omp_unset_lock(&n->lock);
                 }
                 else
                 {
                     // "Virtual loss"
+                    // omp_set_lock(&debug);
+                    // std::cout << omp_get_thread_num() << " virtual loss for " << n->id << std::endl;
+                    // std::cout.flush();
+                    // omp_unset_lock(&debug);
                     score = -1;
                 }
                 
@@ -87,12 +110,27 @@ Engine::IMove *PMonteCarloPlayer::choose_move(Engine::IBoard *board)
 
             depth++;
 
-            node = selected_node;
-
             // omp_set_lock(&debug);
-            // std::cout << omp_get_thread_num() << " traversing down node " << node->id << " highscore " << highscore << std::endl;
+            // std::cout << omp_get_thread_num() << " request 1 " << selected_node->id << std::endl;
             // std::cout.flush();
             // omp_unset_lock(&debug);
+
+            omp_set_lock(&selected_node->lock);
+
+            // omp_set_lock(&debug);
+            // std::cout << omp_get_thread_num() << "    set 1 " << selected_node->id << std::endl;
+            // std::cout.flush();
+            // omp_unset_lock(&debug);
+
+            omp_unset_lock(&node->lock);
+
+            // omp_set_lock(&debug);
+            // std::cout << omp_get_thread_num() << "   unset 1 " << node->id << std::endl;
+            // std::cout.flush();
+            // omp_unset_lock(&debug);
+
+            node = selected_node;
+          
         }
 
         if (depth > max_depth_reached)
@@ -104,14 +142,10 @@ Engine::IMove *PMonteCarloPlayer::choose_move(Engine::IBoard *board)
         float gain = 0;
         int played = 1;
 
-        omp_set_lock(&debug);
-        std::cout << omp_get_thread_num() << " rollout " << node->id << "\n";
-        std::cout.flush();
-        omp_unset_lock(&debug);
-
-        PNode *rollout_node = node;
-
-        rollout_node->set_under_rollout(true);
+        // omp_set_lock(&debug);
+        // std::cout << omp_get_thread_num() << " rollout " << node->id << "\n";
+        // std::cout.flush();
+        // omp_unset_lock(&debug);
 
         if (!node->is_leaf())
         {
@@ -138,6 +172,12 @@ Engine::IMove *PMonteCarloPlayer::choose_move(Engine::IBoard *board)
             }
 
             delete test_board;
+
+            omp_set_lock(&scores_lock);
+            scores[node->id].increase(gain, played);
+            omp_unset_lock(&scores_lock);
+
+            node = node->parent;
         }
         else
         {
@@ -152,39 +192,36 @@ Engine::IMove *PMonteCarloPlayer::choose_move(Engine::IBoard *board)
             }
         }
 
-        rollout_node->set_under_rollout(false);
-        
-        omp_set_lock(&debug);
-        std::cout << omp_get_thread_num() << " rollout ended " << node->id << "\n";
-        std::cout.flush();
-        omp_unset_lock(&debug);
-
         // 4) Backpropagation
         // Backpropagate the outcome to parent node until we reach the root node
-       
+      
+        omp_unset_lock(&node->lock);
+
+        // omp_set_lock(&debug);
+        // std::cout << omp_get_thread_num() << "   unset 4 " << node->id << std::endl;
+        // std::cout.flush();
+        // omp_unset_lock(&debug);
+
         while (node != NULL)
         {
             // Update node's values
+            omp_set_lock(&scores_lock);
             scores[node->id].increase(gain, played);
+            omp_unset_lock(&scores_lock);
 
             // Go to parent
             node = node->parent;
-
-            // if(node != NULL)
-            // {    
-            //     omp_set_lock(&debug);
-            //     std::cout << omp_get_thread_num() << " traversing up node " << node->id << "\n";
-            //     std::cout.flush();
-            //     omp_unset_lock(&debug);
-            // }
         }
     }
+
+    std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
 
     // Now we can select the move with the highest winrate
     if (verbose)
     {
         std::cout << "Max Depth: " << max_depth_reached << std::endl
-                  << "Current win rate: " << (scores[root.id].get_winrate() * 100) << "%" << std::endl;
+                  << "Current win rate: " << (scores[root.id].get_winrate() * 100) << "%" << std::endl
+                  << "Time: " << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count() << " [ms]" << std::endl;
     }
 
     PNode *selected_node;

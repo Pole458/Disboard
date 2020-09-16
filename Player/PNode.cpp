@@ -44,18 +44,12 @@ PNode::~PNode()
 
 bool PNode::is_leaf()
 {
-    omp_set_lock(&lock);
-
-    bool b = possible_moves->size() == 0;
-
-    omp_unset_lock(&lock);
-    
-    return b;
+    return = possible_moves->size() == 0;
 }
 
 void PNode::expand()
 {
-    omp_set_lock(&lock);
+    // omp_set_lock(&lock);
 
     if (!expanded && possible_moves->size() > 0)
     {
@@ -68,12 +62,12 @@ void PNode::expand()
         expanded = true;
     }
 
-    omp_unset_lock(&lock);
+    // omp_unset_lock(&lock);
 }
 
 void PNode::reduce()
 {
-    omp_set_lock(&lock);
+    // omp_set_lock(&lock);
 
     if(expanded)
     {
@@ -86,36 +80,36 @@ void PNode::reduce()
         expanded = false;
     }
 
-    omp_unset_lock(&lock);
+    // omp_unset_lock(&lock);
 }
 
 bool PNode::is_expanded()
 {
-    omp_set_lock(&lock);
+    // omp_set_lock(&lock);
 
     bool b = expanded;
 
-    omp_unset_lock(&lock);
+    // omp_unset_lock(&lock);
 
     return b;
 }
 
 void PNode::set_under_rollout(bool rollout)
 {
-    omp_set_lock(&lock);
+    // omp_set_lock(&lock);
 
     under_rollout = rollout;
 
-    omp_unset_lock(&lock);
+    // omp_unset_lock(&lock);
 }
 
 bool PNode::is_under_rollout()
 {
-    omp_set_lock(&lock);
+    // omp_set_lock(&lock);
 
     bool b = under_rollout;
 
-    omp_unset_lock(&lock);
+    // omp_unset_lock(&lock);
 
     return b;
 }
