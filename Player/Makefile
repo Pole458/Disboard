@@ -1,6 +1,6 @@
 all: Player.a
 
-Player.a: RandomPlayer.o HumanPlayer.o  MonteCarloPlayer.o Node.o Score.o MiniMaxPlayer.o
+Player.a: RandomPlayer.o HumanPlayer.o  MonteCarloPlayer.o Node.o Score.o MiniMaxPlayer.o PMonteCarloPlayer.o PNode.o PScore.o
 	ar -rv $@ $^
 
 RandomPlayer.o: RandomPlayer.h RandomPlayer.cpp
@@ -20,6 +20,15 @@ Score.o: Score.h Score.cpp
 
 MiniMaxPlayer.o: MiniMaxPlayer.h MiniMaxPlayer.cpp
 	g++ -c MiniMaxPlayer.cpp
+
+PMonteCarloPlayer.o: PMonteCarloPlayer.h PMonteCarloPlayer.cpp
+	g++ -c -fopenmp PMonteCarloPlayer.cpp
+
+PNode.o: PNode.h PNode.cpp
+	g++ -c PNode.cpp
+	
+PScore.o: PScore.h PScore.cpp
+	g++ -c PScore.cpp
 
 clean:
 	rm -f *.o

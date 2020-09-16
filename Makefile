@@ -1,5 +1,5 @@
 all: Engine.a Player.a ConnectFour.a
-	g++ -o main main.cpp Engine/Engine.a Player/Player.a ConnectFour/ConnectFour.a
+	g++ -o main -fopenmp main.cpp Engine/Engine.a Player/Player.a ConnectFour/ConnectFour.a
 
 Engine.a:
 	cd Engine; make

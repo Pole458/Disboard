@@ -2,23 +2,20 @@
 
 #include "RandomPlayer.h"
 #include "../Engine/Engine.h"
-#include "../Pcg/pcg_random.hpp"
-#include "Node.h"
-#include "Score.h"
+#include "PNode.h"
+#include "PScore.h"
 
 #include <unordered_map>
+#include <omp.h>
 
-class MonteCarloPlayer : public IPlayer
+class PMonteCarloPlayer : public IPlayer
 {
 
 public:
-    MonteCarloPlayer(int rollouts, bool verbose = false);
+    PMonteCarloPlayer(int rollouts, bool verbose = false);
     Engine::IMove *choose_move(Engine::IBoard *board);
 
 private:
-    // Random generator
-    pcg32 rng;
-
     // Internal random player used to for random rollout
     RandomPlayer player;
 

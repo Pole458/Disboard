@@ -13,7 +13,6 @@ class RandomPlayer : public IPlayer
 {
 	public:
 		RandomPlayer();
-		~RandomPlayer();
 
 		Engine::IMove* choose_move(Engine::IBoard* board);
 

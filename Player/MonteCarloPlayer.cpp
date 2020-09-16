@@ -5,11 +5,16 @@ MonteCarloPlayer::MonteCarloPlayer(int rollouts, bool verbose)
 {
     this->rollouts = rollouts;
     this->verbose = verbose;
+
+    // Seed with a real random value, if available
+    pcg_extras::seed_seq_from<std::random_device> seed_source;
+
+    // Make a random number engine
+    rng = pcg32(seed_source);
 }
 
 Engine::IMove *MonteCarloPlayer::choose_move(Engine::IBoard *board)
 {
-    //
     int my_turn = board->turn % 2;
 
     int max_depth_reached = 0;
@@ -88,7 +93,7 @@ Engine::IMove *MonteCarloPlayer::choose_move(Engine::IBoard *board)
             node->expand();
 
             // Pick one children node
-            node = node->children[0];
+            node = node->children[rng(node->possible_moves->size())];
 
             // 3) Rollout
             // Simulate a random game from the node's board configuration
