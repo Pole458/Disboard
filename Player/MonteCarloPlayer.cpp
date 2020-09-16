@@ -17,7 +17,7 @@ MonteCarloPlayer::MonteCarloPlayer(int rollouts, bool verbose)
 
 Engine::IMove *MonteCarloPlayer::choose_move(Engine::IBoard *board)
 {
-    
+
     int my_turn = board->turn % 2;
 
     int max_depth_reached = 0;
@@ -148,14 +148,14 @@ Engine::IMove *MonteCarloPlayer::choose_move(Engine::IBoard *board)
 
     std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
 
-    // Now we can select the move with the highest winrate
-
     if (verbose)
     {
         std::cout << "Max Depth: " << max_depth_reached << std::endl
-                  << "Current win rate: " << (scores[root.id].get_winrate() * 100) << "%" << std::endl
-                  << "Time: " << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count() << " [ms]" << std::endl;
+                  << "Time: " << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count() << " [ms]" << std::endl
+                  << "Current win rate: " << (scores[root.id].get_winrate() * 100) << "%" << std::endl;
     }
+
+    // Now we can select the move with the highest winrate
 
     Node *selected_node;
     float highscore = -1;

@@ -16,9 +16,12 @@ public:
 
     void increase(float score, float played);
 
+    void set_virtual_loss(bool b);
+
 private:
     omp_lock_t lock;
 
     float played;
     float score;
+    bool virtual_loss;
 };

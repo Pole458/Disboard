@@ -19,9 +19,6 @@ public:
 
     bool is_expanded();
 
-    void set_under_rollout(bool rollout);
-    bool is_under_rollout();
-
     PNode* parent;
     PNode** children;
 
@@ -31,7 +28,5 @@ public:
 
 private:
     omp_lock_t lock;
-
     bool expanded;
-    bool under_rollout;
 };
