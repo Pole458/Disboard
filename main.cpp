@@ -5,7 +5,9 @@
 #include "Player/MiniMaxPlayer.h"
 #include "Engine/Engine.h"
 #include "Pcg/pcg_random.hpp"
-#include "Player/PMonteCarloPlayer.h"
+#include "Player/PTMonteCarloPlayer.h"
+#include "Player/PRMonteCarloPlayer.h"
+#include "Player/PLMonteCarloPlayer.h"
 
 #include <iostream>
 #include <chrono>
@@ -75,17 +77,22 @@ int main()
     // HumanPlayer p1;
     // RandomPlayer p1;
     // MiniMaxPlayer p1(12, true);
-    MonteCarloPlayer p1(100000, true);
+    MonteCarloPlayer p1(10000, false);
+    // PTMonteCarloPlayer p1(100000, true);
+    // PRMonteCarloPlayer p1(10000, true);
+    // PLMonteCarloPlayer p1(10000, true);
 
     // HumanPlayer p2;
     // RandomPlayer p2;
     // MiniMaxPlayer p2(12, true);
     // MonteCarloPlayer p2(1000, true);
-    PMonteCarloPlayer p2(100000, true);
+    // PTMonteCarloPlayer p2(10000, false);
+    PRMonteCarloPlayer p2(10000, false);
+    // PLMonteCarloPlayer p2(10000, false);
 
-    single_game(&p1, &p2);
+    // single_game(&p1, &p2);
 
-    // test_games(&p1, &p2, 10);
+    test_games(&p1, &p2, 10);
 
     return 0;
 }

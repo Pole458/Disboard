@@ -27,8 +27,8 @@ float Score::get_winrate()
     return score / played;
 }
 
-float Score::get_inverse_winrate()
+void Score::increase(float score, float played)
 {
-    if(played == 0) return std::numeric_limits<float>::max();
-    return (played - score) / played;
+    this->score += score;
+    this->played += played;
 }

@@ -2,17 +2,17 @@
 
 #include "RandomPlayer.h"
 #include "../Engine/Engine.h"
-#include "PNode.h"
-#include "PScore.h"
+#include "Node.h"
+#include "Score.h"
 
 #include <unordered_map>
 #include <omp.h>
 
-class PMonteCarloPlayer : public IPlayer
+class PRMonteCarloPlayer : public IPlayer
 {
 
 public:
-    PMonteCarloPlayer(int rollouts, bool verbose = false);
+    PRMonteCarloPlayer(int rollouts, bool verbose = false);
     Engine::IMove *choose_move(Engine::IBoard *board);
 
 private:

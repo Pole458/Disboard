@@ -1,6 +1,6 @@
 all: Player.a
 
-Player.a: RandomPlayer.o HumanPlayer.o  MonteCarloPlayer.o Node.o Score.o MiniMaxPlayer.o PMonteCarloPlayer.o PNode.o PScore.o
+Player.a: RandomPlayer.o HumanPlayer.o  MonteCarloPlayer.o Node.o Score.o MiniMaxPlayer.o PTMonteCarloPlayer.o PNode.o PScore.o PRMonteCarloPlayer.o PLMonteCarloPlayer.o
 	ar -rv $@ $^
 
 RandomPlayer.o: RandomPlayer.h RandomPlayer.cpp
@@ -21,8 +21,14 @@ Score.o: Score.h Score.cpp
 MiniMaxPlayer.o: MiniMaxPlayer.h MiniMaxPlayer.cpp
 	g++ -c MiniMaxPlayer.cpp
 
-PMonteCarloPlayer.o: PMonteCarloPlayer.h PMonteCarloPlayer.cpp
-	g++ -c -fopenmp PMonteCarloPlayer.cpp
+PTMonteCarloPlayer.o: PTMonteCarloPlayer.h PTMonteCarloPlayer.cpp
+	g++ -c -fopenmp PTMonteCarloPlayer.cpp
+
+PRMonteCarloPlayer.o: PRMonteCarloPlayer.h PRMonteCarloPlayer.cpp
+	g++ -c -fopenmp PRMonteCarloPlayer.cpp
+
+PLMonteCarloPlayer.o: PLMonteCarloPlayer.h PLMonteCarloPlayer.cpp
+	g++ -c -fopenmp PLMonteCarloPlayer.cpp
 
 PNode.o: PNode.h PNode.cpp
 	g++ -c PNode.cpp

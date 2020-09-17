@@ -1,16 +1,16 @@
-#include "PMonteCarloPlayer.h"
+#include "PTMonteCarloPlayer.h"
 #include "../Engine/IPossibleMoves.h"
 
 #include <string>
 #include <chrono>
 
-PMonteCarloPlayer::PMonteCarloPlayer(int rollouts, bool verbose)
+PTMonteCarloPlayer::PTMonteCarloPlayer(int rollouts, bool verbose)
 {
     this->rollouts = rollouts;
     this->verbose = verbose;
 }
 
-Engine::IMove *PMonteCarloPlayer::choose_move(Engine::IBoard *board)
+Engine::IMove *PTMonteCarloPlayer::choose_move(Engine::IBoard *board)
 {
 
     int my_turn = board->turn % 2;
@@ -174,6 +174,7 @@ Engine::IMove *PMonteCarloPlayer::choose_move(Engine::IBoard *board)
     {
         std::cout << "Max Depth: " << max_depth_reached << std::endl
                   << "Time: " << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count() << " [ms]" << std::endl
+                  << "Played: " << scores[root.id].get_played() << std::endl
                   << "Current win rate: " << (scores[root.id].get_winrate() * 100) << "%" << std::endl;
     }
 

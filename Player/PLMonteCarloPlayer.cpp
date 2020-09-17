@@ -1,21 +1,16 @@
-#include "MonteCarloPlayer.h"
+#include "PLMonteCarloPlayer.h"
 #include "../Engine/IPossibleMoves.h"
 
+#include <string>
 #include <chrono>
 
-MonteCarloPlayer::MonteCarloPlayer(int rollouts, bool verbose)
+PLMonteCarloPlayer::PLMonteCarloPlayer(int rollouts, bool verbose)
 {
     this->rollouts = rollouts;
     this->verbose = verbose;
-
-    // Seed with a real random value, if available
-    pcg_extras::seed_seq_from<std::random_device> seed_source;
-
-    // Make a random number engine
-    rng = pcg32(seed_source);
 }
 
-Engine::IMove *MonteCarloPlayer::choose_move(Engine::IBoard *board)
+Engine::IMove *PLMonteCarloPlayer::choose_move(Engine::IBoard *board)
 {
 
     int my_turn = board->turn % 2;
@@ -24,15 +19,20 @@ Engine::IMove *MonteCarloPlayer::choose_move(Engine::IBoard *board)
 
     int iterations = 0;
 
-    // Hash map used to store scoring for each possible board configuration.
-    std::unordered_map<Engine::board_id, Score> scores;
+    omp_lock_t debug;
+    omp_init_lock(&debug);
 
     // Creates root node for the game-tree starting from the current board configuration.
     Node root = Node(board->get_copy());
 
+    // Hash map used to store scoring for each possible board configuration.
+    std::unordered_map<Engine::board_id, Score> scores;
+
+    // omp_set_num_threads(2);
+
     std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
 
-    while (iterations < rollouts)
+    for (int iterations = 0; iterations < rollouts; iterations++)
     {
         Node *node = &root;
 
@@ -48,87 +48,101 @@ Engine::IMove *MonteCarloPlayer::choose_move(Engine::IBoard *board)
         {
 
             Node *selected_node;
-            float highscore = -1;
+            float highscore = std::numeric_limits<int>::min();
             float score;
 
-            if (node->board->turn % 2 == my_turn)
+            for (int i = 0; i < node->possible_moves->size(); i++)
             {
-                // If it's my turn, use the ucb value that maximize my winrate
-                for (int i = 0; i < node->possible_moves->size(); i++)
+                Node *n = node->children[i];
+
+                if (node->board->turn % 2 == my_turn)
                 {
-                    Node *n = node->children[i];
+                    // If it's my turn, use the ucb value that maximize my winrate
                     score = scores[n->id].get_ucb(scores[root.id].played);
-                    if (score > highscore)
-                    {
-                        selected_node = n;
-                        highscore = score;
-                    }
                 }
-            }
-            else
-            {
-                // If it's my opponent's turn, use the ucb value that minimize my winrate
-                for (int i = 0; i < node->possible_moves->size(); i++)
+                else
                 {
-                    Node *n = node->children[i];
+                    // If it's my opponent's turn, use the ucb value that minimize my winrate
                     score = scores[n->id].get_inverse_ucb(scores[root.id].played);
-                    if (score > highscore)
-                    {
-                        selected_node = n;
-                        highscore = score;
-                    }
+                }
+
+                if (score > highscore)
+                {
+                    selected_node = n;
+                    highscore = score;
                 }
             }
 
             depth++;
+
             node = selected_node;
         }
 
-        if (max_depth_reached < depth)
+        if (depth > max_depth_reached)
             max_depth_reached = depth;
 
         // 2) Expansion
         // If this node it's not a terminal node, expand it
 
         float gain = 0;
-        int played = 1;
+        int played = 0;
 
         if (!node->is_leaf())
         {
+            // Expand node
             node->expand();
 
             // Pick one children node
-            node = node->children[rng(node->possible_moves->size())];
+            node = node->children[0];
 
             // 3) Rollout
             // Simulate a random game from the node's board configuration
 
-            Engine::IBoard *test_board = node->board->get_copy();
-            Engine::play(test_board, &player, &player);
-
-            // Node the board is in a terminal state, get the outcome
-            if (test_board->status == Engine::IBoard::Draw)
+#pragma omp parallel
             {
-                gain = 0.5f;
-            }
-            else if ((my_turn == 1 && test_board->status == Engine::IBoard::First) || (my_turn == 0 && test_board->status == Engine::IBoard::Second))
-            {
-                gain = 1;
-            }
+                float p_gain = 0;
+                float p_played = 0;
 
-            delete test_board;
+                for (int i = 0; i < 1; i++)
+                {
+                    Engine::IBoard *test_board = node->board->get_copy();
+                    Engine::play(test_board, &player, &player);
+
+                    // The board is now in a terminal state, get the outcome
+                    if (test_board->status == Engine::IBoard::Draw)
+                    {
+                        p_gain += 0.5f;
+                    }
+                    else if ((my_turn == 1 && test_board->status == Engine::IBoard::First) || (my_turn == 0 && test_board->status == Engine::IBoard::Second))
+                    {
+                        p_gain += 1;
+                    }
+
+                    p_played++;
+
+                    delete test_board;
+                }
+
+#pragma omp critical
+                {
+                    played += p_played;
+                    gain += p_gain;
+                }
+            }
         }
         else
         {
             // Node it's a terminal node, get the outcome
             if (node->board->status == Engine::IBoard::Draw)
             {
-                gain = 0.5f;
+                gain = 0.5f * 4;
             }
             else if ((my_turn == 1 && node->board->status == Engine::IBoard::First) || (my_turn == 0 && node->board->status == Engine::IBoard::Second))
             {
-                gain = 1;
+                gain = 1 * 4;
             }
+
+            played = 1 * 4;
         }
 
         // 4) Backpropagation
@@ -141,8 +155,6 @@ Engine::IMove *MonteCarloPlayer::choose_move(Engine::IBoard *board)
             // Go to parent
             node = node->parent;
         }
-
-        iterations++;
     }
 
     std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
