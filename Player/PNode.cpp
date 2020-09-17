@@ -7,6 +7,7 @@ PNode::PNode(Engine::IBoard *board, Engine::IMove *move, PNode *parent)
     this->parent = parent;
 
     expanded = false;
+    virtual_loss = false;
 
     // Apply move
     if(move != NULL)
@@ -86,6 +87,26 @@ bool PNode::is_expanded()
     omp_set_lock(&lock);
 
     bool b = expanded;
+
+    omp_unset_lock(&lock);
+
+    return b;
+}
+
+void PNode::set_virtual_loss(bool b)
+{
+    omp_set_lock(&lock);
+
+    virtual_loss = b;
+
+    omp_unset_lock(&lock);
+}
+
+bool PNode::get_virtual_loss()
+{
+    omp_set_lock(&lock);
+
+    bool b = virtual_loss;
 
     omp_unset_lock(&lock);
 

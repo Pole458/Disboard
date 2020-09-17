@@ -19,6 +19,9 @@ public:
 
     bool is_expanded();
 
+    void set_virtual_loss(bool b);
+    bool get_virtual_loss();
+
     PNode* parent;
     PNode** children;
 
@@ -29,4 +32,5 @@ public:
 private:
     omp_lock_t lock;
     bool expanded;
+    bool virtual_loss;
 };

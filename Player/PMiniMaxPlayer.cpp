@@ -65,8 +65,6 @@ Engine::IMove *PMiniMaxPlayer::choose_move(Engine::IBoard *board)
 int PMiniMaxPlayer::maximize(Node *node, int depth, int alpha, int beta)
 {
 
-    // std::cout << "max, depth " << depth << std::endl;
-
     // If this board position has already been evaluated, return the cached value
     if (scores.find(node->id) != scores.end())
     {
@@ -140,8 +138,6 @@ int PMiniMaxPlayer::maximize(Node *node, int depth, int alpha, int beta)
 
 int PMiniMaxPlayer::minimize(Node *node, int depth, int alpha, int beta)
 {
-    // std::cout << "min, depth " << depth << std::endl;
-
     // If this board position has already been evaluated, return the cached value
     if (scores.find(node->id) != scores.end())
     {
