@@ -22,7 +22,7 @@ Engine::IMove *PRMonteCarloPlayer::choose_move(Engine::IBoard *board)
     omp_lock_t debug;
     omp_init_lock(&debug);
 
-    // Creates root node for the game-tree starting from the current board configuration.
+    // Creates root node for the game-tree starting from the current board conguration.
     Node global_root = Node(board->get_copy());
     global_root.expand();
 
@@ -41,7 +41,7 @@ Engine::IMove *PRMonteCarloPlayer::choose_move(Engine::IBoard *board)
 
         std::unordered_map<Engine::board_id, Score> scores;
 
-        for (int iterations = 0; iterations < rollouts; iterations++)
+        while(scores[root.id].played < rollouts / omp_get_num_threads())
         {
             Node *node = &root;
 

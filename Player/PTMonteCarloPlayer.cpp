@@ -17,8 +17,6 @@ Engine::IMove *PTMonteCarloPlayer::choose_move(Engine::IBoard *board)
 
     int max_depth_reached = 0;
 
-    int iterations = 0;
-
     omp_lock_t debug;
     omp_init_lock(&debug);
 
@@ -31,7 +29,9 @@ Engine::IMove *PTMonteCarloPlayer::choose_move(Engine::IBoard *board)
     // Creates root node for the game-tree starting from the current board configuration.
     PNode root = PNode(board->get_copy());
 
-    // omp_set_num_threads(2);
+    scores.try_emplace(root.id);
+
+    omp_set_num_threads(2);
 
     std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
 
@@ -45,6 +45,11 @@ Engine::IMove *PTMonteCarloPlayer::choose_move(Engine::IBoard *board)
         // Search for the most interesting node to be tested.
         // Starting from the root node, select the children node with the best ucb value
         // Repeat until we found a node not yet expanded
+
+        // omp_set_lock(&debug);
+        // std::cout << omp_get_thread_num() << " iteration " << iterations << std::endl;
+        // std::cout.flush();
+        // omp_unset_lock(&debug);
 
         int depth = 0;
 
@@ -60,20 +65,28 @@ Engine::IMove *PTMonteCarloPlayer::choose_move(Engine::IBoard *board)
             {
                 PNode *n = node->children[i];
 
+                // Create score for node if it doesn't exists
+                if (scores.find(n->id) == scores.end())
+                {
+                    omp_set_lock(&scores_lock);
+                    scores.try_emplace(n->id);
+                    omp_unset_lock(&scores_lock);
+                }
+
+                omp_set_lock(&scores_lock);
+
                 if (node->board->turn % 2 == my_turn)
                 {
                     // If it's my turn, use the ucb value that maximize my winrate
-                    omp_set_lock(&scores_lock);
-                    score = scores[n->id].get_ucb(scores[root.id].get_played());
-                    omp_unset_lock(&scores_lock);
+                    score = scores.at(n->id).get_ucb(scores.at(root.id).get_played());
                 }
                 else
                 {
                     // If it's my opponent's turn, use the ucb value that minimize my winrate
-                    omp_set_lock(&scores_lock);
-                    score = scores[n->id].get_inverse_ucb(scores[root.id].get_played());
-                    omp_unset_lock(&scores_lock);
+                    score = scores.at(n->id).get_inverse_ucb(scores.at(root.id).get_played());
                 }
+
+                omp_unset_lock(&scores_lock);
 
                 if (score > highscore)
                 {
@@ -107,9 +120,18 @@ Engine::IMove *PTMonteCarloPlayer::choose_move(Engine::IBoard *board)
             // 3) Rollout
             // Simulate a random game from the node's board configuration
 
+            // Create score for node if it doesn't exists
+            if (scores.find(node->id) == scores.end())
+            {
+                omp_set_lock(&scores_lock);
+                scores.try_emplace(node->id);
+                omp_unset_lock(&scores_lock);
+            }
+
             // Virtual loss
+
             omp_set_lock(&scores_lock);
-            scores[node->id].set_virtual_loss(true);
+            scores.at(node->id).set_virtual_loss(true);
             omp_unset_lock(&scores_lock);
 
             Engine::IBoard *test_board = node->board->get_copy();
@@ -128,14 +150,15 @@ Engine::IMove *PTMonteCarloPlayer::choose_move(Engine::IBoard *board)
             delete test_board;
 
             omp_set_lock(&scores_lock);
-            scores[node->id].set_virtual_loss(false);
+            scores.at(node->id).set_virtual_loss(false);
             omp_unset_lock(&scores_lock);
         }
         else
         {
+
             // Virtual loss
             omp_set_lock(&scores_lock);
-            scores[node->id].set_virtual_loss(true);
+            scores.at(node->id).set_virtual_loss(true);
             omp_unset_lock(&scores_lock);
 
             // Node it's a terminal node, get the outcome
@@ -149,23 +172,23 @@ Engine::IMove *PTMonteCarloPlayer::choose_move(Engine::IBoard *board)
             }
 
             omp_set_lock(&scores_lock);
-            scores[node->id].set_virtual_loss(false);
+            scores.at(node->id).set_virtual_loss(false);
             omp_unset_lock(&scores_lock);
         }
 
         // 4) Backpropagation
         // Backpropagate the outcome to parent node until we reach the root node
 
-        omp_set_lock(&scores_lock);
         while (node != NULL)
         {
-            // Update node's values            
-            scores[node->id].increase(gain, played);
+            // Update node's values
+            omp_set_lock(&scores_lock);
+            scores.at(node->id).increase(gain, played);
+            omp_unset_lock(&scores_lock);
 
             // Go to parent
             node = node->parent;
         }
-        omp_unset_lock(&scores_lock);
     }
 
     std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();

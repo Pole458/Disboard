@@ -2,6 +2,7 @@
 #include "../Engine/IPossibleMoves.h"
 
 #include <iostream>
+#include <chrono>
 
 MiniMaxPlayer::MiniMaxPlayer(int depth, bool verbose)
 {
@@ -24,6 +25,9 @@ Engine::IMove *MiniMaxPlayer::choose_move(Engine::IBoard *board)
     Node root(board->get_copy());
     root.expand();
     Engine::IMove *selected_move = NULL;
+
+    std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
+
     // Search for the children node with the maximum score
     for (int i = 0; i < root.possible_moves->size(); i++)
     {
@@ -39,9 +43,12 @@ Engine::IMove *MiniMaxPlayer::choose_move(Engine::IBoard *board)
         }
     }
 
+    std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
+
     if (verbose)
     {
         std::cout << "Nodes visited " << nodes_evaluated << std::endl
+                  << "Time: " << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count() << " [ms]" << std::endl
                   << "Pruned: " << pruned << std::endl
                   << "Cache hits " << cached << std::endl;
     }

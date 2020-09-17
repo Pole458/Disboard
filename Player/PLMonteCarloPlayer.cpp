@@ -4,10 +4,11 @@
 #include <string>
 #include <chrono>
 
-PLMonteCarloPlayer::PLMonteCarloPlayer(int rollouts, bool verbose)
+PLMonteCarloPlayer::PLMonteCarloPlayer(int rollouts, int rollout_size, bool verbose)
 {
     this->rollouts = rollouts;
     this->verbose = verbose;
+    this->rollout_size = rollout_size;
 }
 
 Engine::IMove *PLMonteCarloPlayer::choose_move(Engine::IBoard *board)
@@ -16,11 +17,6 @@ Engine::IMove *PLMonteCarloPlayer::choose_move(Engine::IBoard *board)
     int my_turn = board->turn % 2;
 
     int max_depth_reached = 0;
-
-    int iterations = 0;
-
-    omp_lock_t debug;
-    omp_init_lock(&debug);
 
     // Creates root node for the game-tree starting from the current board configuration.
     Node root = Node(board->get_copy());
@@ -32,7 +28,7 @@ Engine::IMove *PLMonteCarloPlayer::choose_move(Engine::IBoard *board)
 
     std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
 
-    for (int iterations = 0; iterations < rollouts; iterations++)
+    while(scores[root.id].played < rollouts)
     {
         Node *node = &root;
 
@@ -98,36 +94,26 @@ Engine::IMove *PLMonteCarloPlayer::choose_move(Engine::IBoard *board)
             // 3) Rollout
             // Simulate a random game from the node's board configuration
 
-#pragma omp parallel
+#pragma omp parallel for reduction(+:gain) reduction(+:played)
+            for(int i = 0; i < rollout_size; i++)
             {
-                float p_gain = 0;
-                float p_played = 0;
+              
+                Engine::IBoard *test_board = node->board->get_copy();
+                Engine::play(test_board, &player, &player);
 
-                for (int i = 0; i < 1; i++)
+                // The board is now in a terminal state, get the outcome
+                if (test_board->status == Engine::IBoard::Draw)
                 {
-                    Engine::IBoard *test_board = node->board->get_copy();
-                    Engine::play(test_board, &player, &player);
-
-                    // The board is now in a terminal state, get the outcome
-                    if (test_board->status == Engine::IBoard::Draw)
-                    {
-                        p_gain += 0.5f;
-                    }
-                    else if ((my_turn == 1 && test_board->status == Engine::IBoard::First) || (my_turn == 0 && test_board->status == Engine::IBoard::Second))
-                    {
-                        p_gain += 1;
-                    }
-
-                    p_played++;
-
-                    delete test_board;
+                    gain += 0.5f;
+                }
+                else if ((my_turn == 1 && test_board->status == Engine::IBoard::First) || (my_turn == 0 && test_board->status == Engine::IBoard::Second))
+                {
+                    gain += 1;
                 }
 
-#pragma omp critical
-                {
-                    played += p_played;
-                    gain += p_gain;
-                }
+                played++;
+
+                delete test_board;
             }
         }
         else
@@ -135,14 +121,14 @@ Engine::IMove *PLMonteCarloPlayer::choose_move(Engine::IBoard *board)
             // Node it's a terminal node, get the outcome
             if (node->board->status == Engine::IBoard::Draw)
             {
-                gain = 0.5f * 4;
+                gain = 0.5f;
             }
             else if ((my_turn == 1 && node->board->status == Engine::IBoard::First) || (my_turn == 0 && node->board->status == Engine::IBoard::Second))
             {
-                gain = 1 * 4;
+                gain = 1;
             }
 
-            played = 1 * 4;
+            played = 1;
         }
 
         // 4) Backpropagation
@@ -150,7 +136,7 @@ Engine::IMove *PLMonteCarloPlayer::choose_move(Engine::IBoard *board)
         while (node != NULL)
         {
             // Update node's values
-            scores[node->id].increase(gain, played);
+            scores[node->id].increase(gain / played, 1);
 
             // Go to parent
             node = node->parent;

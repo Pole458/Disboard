@@ -13,7 +13,7 @@ class PLMonteCarloPlayer : public IPlayer
 {
 
 public:
-    PLMonteCarloPlayer(int rollouts, bool verbose = false);
+    PLMonteCarloPlayer(int rollouts, int rollout_size, bool verbose = false);
     Engine::IMove *choose_move(Engine::IBoard *board);
 
 private:
@@ -22,6 +22,9 @@ private:
 
     // Number to rollout needed to choose a move
     int rollouts;
+
+    // Number to rollout done for each iteration of the algorithm
+    int rollout_size;
 
     bool verbose;
 };
