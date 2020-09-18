@@ -12,6 +12,7 @@ PTMonteCarloPlayer::PTMonteCarloPlayer(int rollouts, bool verbose)
 
 Engine::IMove *PTMonteCarloPlayer::choose_move(Engine::IBoard *board)
 {
+    std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
 
     int my_turn = board->turn % 2;
 
@@ -31,16 +32,14 @@ Engine::IMove *PTMonteCarloPlayer::choose_move(Engine::IBoard *board)
 
     scores.try_emplace(root.id);
 
-    // omp_set_num_threads(2);
-
-    std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
 
 #pragma omp parallel for reduction(max \
                                    : max_depth_reached)
     for (int iterations = 0; iterations < rollouts; iterations++)
     {
         PNode *node = &root;
-
+        PNode *explored_node;
+        
         // 1) Tree traversing
         // Search for the most interesting node to be tested.
         // Starting from the root node, select the children node with the best ucb value
@@ -48,48 +47,57 @@ Engine::IMove *PTMonteCarloPlayer::choose_move(Engine::IBoard *board)
 
         int depth = 0;
 
-        // Keep searching for a node not yet expanded
-        while (node->is_expanded())
+        #pragma omp critical
         {
-
-            PNode *selected_node;
-            float highscore = std::numeric_limits<int>::min();
-            float score;
-
-            for (int i = 0; i < node->possible_moves->size(); i++)
+            // Keep searching for a node not yet expanded
+            while (node->is_expanded())
             {
-                PNode *n = node->children[i];
 
-                if(n->get_virtual_loss())
+                PNode *selected_node;
+                float highscore = std::numeric_limits<int>::min();
+                float score;
+
+                for (int i = 0; i < node->possible_moves->size(); i++)
                 {
-                    score = -1;
-                }
-                else
-                {
-                    omp_set_lock(&scores_lock);
-                    if (node->board->turn % 2 == my_turn)
+                    PNode *n = node->children[i];
+
+                    if(n->is_being_explored())
                     {
-                        // If it's my turn, use the ucb value that maximize my winrate
-                        score = scores[n->id].get_ucb(scores.at(root.id).get_played());
+                        score = -1;
                     }
                     else
                     {
-                        // If it's my opponent's turn, use the ucb value that minimize my winrate
-                        score = scores[n->id].get_inverse_ucb(scores.at(root.id).get_played());
+                        if (node->board->turn % 2 == my_turn)
+                        {
+                            // If it's my turn, use the ucb value that maximize my winrate
+                            omp_set_lock(&scores_lock);
+                            score = scores[n->id].get_ucb(scores.at(root.id).get_played());
+                            omp_unset_lock(&scores_lock);
+                        }
+                        else
+                        {
+                            // If it's my opponent's turn, use the ucb value that minimize my winrate
+                            omp_set_lock(&scores_lock);
+                            score = scores[n->id].get_inverse_ucb(scores.at(root.id).get_played());
+                            omp_unset_lock(&scores_lock);
+                        }
                     }
-                    omp_unset_lock(&scores_lock);
+
+                    if (score > highscore)
+                    {
+                        selected_node = n;
+                        highscore = score;
+                    }
                 }
 
-                if (score > highscore)
-                {
-                    selected_node = n;
-                    highscore = score;
-                }
+                depth++;
+
+                node = selected_node;
+
             }
 
-            depth++;
-
-            node = selected_node;
+            explored_node = node;
+            explored_node->set_explored(true);
         }
 
         if (depth > max_depth_reached)
@@ -98,8 +106,8 @@ Engine::IMove *PTMonteCarloPlayer::choose_move(Engine::IBoard *board)
         // 2) Expansion
         // If this node it's not a terminal node, expand it
 
-        float gain = 0;
-        int played = 1;
+        float gain;
+        int played;
 
         if (!node->is_leaf())
         {
@@ -111,9 +119,6 @@ Engine::IMove *PTMonteCarloPlayer::choose_move(Engine::IBoard *board)
 
             // 3) Rollout
             // Simulate a random game from the node's board configuration
-
-            // Virtual loss
-            node->set_virtual_loss(true);
 
             Engine::IBoard *test_board = node->board->get_copy();
             Engine::play(test_board, &player, &player);
@@ -132,10 +137,6 @@ Engine::IMove *PTMonteCarloPlayer::choose_move(Engine::IBoard *board)
         }
         else
         {
-
-            // Virtual loss
-            node->set_virtual_loss(true);
-
             // Node it's a terminal node, get the outcome
             if (node->board->status == Engine::IBoard::Draw)
             {
@@ -145,10 +146,7 @@ Engine::IMove *PTMonteCarloPlayer::choose_move(Engine::IBoard *board)
             {
                 gain = 1;
             }
-
         }
-
-        node->set_virtual_loss(false);
 
         // 4) Backpropagation
         // Backpropagate the outcome to parent node until we reach the root node
@@ -164,6 +162,9 @@ Engine::IMove *PTMonteCarloPlayer::choose_move(Engine::IBoard *board)
             node = node->parent;
         }
         omp_unset_lock(&scores_lock);
+
+        explored_node->set_explored(false);
+
     }
 
     std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();

@@ -19,8 +19,8 @@ public:
 
     bool is_expanded();
 
-    void set_virtual_loss(bool b);
-    bool get_virtual_loss();
+    void set_explored(bool b);
+    bool is_being_explored();
 
     PNode* parent;
     PNode** children;
@@ -31,6 +31,8 @@ public:
 
 private:
     omp_lock_t lock;
+    omp_lock_t explored_lock;
+
     bool expanded;
-    bool virtual_loss;
+    bool explored;
 };

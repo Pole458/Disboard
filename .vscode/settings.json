@@ -51,6 +51,8 @@
         "ios": "cpp",
         "queue": "cpp",
         "cinttypes": "cpp",
-        "cstring": "cpp"
+        "cstring": "cpp",
+        "set": "cpp",
+        "unordered_set": "cpp"
     }
 }
