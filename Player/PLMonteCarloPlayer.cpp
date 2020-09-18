@@ -3,7 +3,8 @@
 
 #include <string>
 #include <chrono>
-
+#include <unordered_map>
+#include <unordered_set>
 
 PLMonteCarloPlayer::PLMonteCarloPlayer(int rollouts, int rollout_size, bool verbose)
 {
@@ -14,31 +15,37 @@ PLMonteCarloPlayer::PLMonteCarloPlayer(int rollouts, int rollout_size, bool verb
 
 Engine::IMove *PLMonteCarloPlayer::choose_move(Engine::IBoard *board)
 {
-    
+
     std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
 
     int my_turn = board->turn % 2;
 
     int max_depth_reached = 0;
 
+    int iterations = 0;
+
     // Creates root node for the game-tree starting from the current board configuration.
     Node root = Node(board->get_copy());
 
-    // Clear cached values
-    nodes.clear();
-    scores.clear();
-    gains.clear();
-    
+    // Hash map used to store scoring for each possible board configuration.
+    std::unordered_map<Engine::board_id, Score> scores;
+
+    // Hash map used to group nodes with the same id
+    std::unordered_map<Engine::board_id, std::unordered_set<Node *>> nodes;
+
+    // Hash map used for backpropagation
+    std::unordered_map<Engine::board_id, Score> back_prop;
+
     Node *node;
 
     omp_lock_t debug;
     omp_init_lock(&debug);
 
     bool should_stop = false;
-   
+
     #pragma omp parallel
     {
-        while(!should_stop)
+        while (!should_stop)
         {
             #pragma omp master
             {
@@ -83,38 +90,39 @@ Engine::IMove *PLMonteCarloPlayer::choose_move(Engine::IBoard *board)
 
                     depth++;
 
+                    // if(depth > 42)
+                    // {
+                    //     std::cout << "depth limit" << std::endl;
+                    //     std::cin.get();
+                    // }
+
                     node = selected_node;
                 }
 
-                // omp_set_lock(&debug);
-                // std::cout << omp_get_thread_num() << " selected node " << node->id << std::endl;
-                // omp_unset_lock(&debug);
-
                 if (depth > max_depth_reached)
                     max_depth_reached = depth;
-            
-                float gain = 0;
 
-                if(node->is_leaf())
+                if (node->is_leaf())
                 {
                     // Node it's a terminal node, get the outcome
                     if (node->board->status == Engine::IBoard::Draw)
                     {
-                        gain = 0.5f;
+                        back_prop[node->id].increase(0.5f, 1);
                     }
                     else if ((my_turn == 1 && node->board->status == Engine::IBoard::First) || (my_turn == 0 && node->board->status == Engine::IBoard::Second))
                     {
-                        gain = 1;
+                        back_prop[node->id].increase(1, 1);
                     }
-
-                    // Set this node to be updated in backprop
-                    gains[node->id] += gain;
-                    playeds[node->id] += 1;
+                    else
+                    {
+                        back_prop[node->id].increase(0, 1);
+                    }
                 }
                 else
                 {
                     // Prepare expansion
-                    node->children = new Node*[node->possible_moves->size()];
+                    // node->expand();
+                    node->children = new Node *[node->possible_moves->size()];
                     node->expanded = true;
                 }
             }
@@ -123,26 +131,37 @@ Engine::IMove *PLMonteCarloPlayer::choose_move(Engine::IBoard *board)
 
             // Parallel section
 
-            if(!node->is_leaf())
+            if (!node->is_leaf())
             {
                 // 2) Expansion & Rollout
                 // If this node it's not a terminal node, expand it and simulate a random game for each child from theirs board configurations
                 #pragma omp for
-                for(int i = 0; i < node->possible_moves->size(); i++)
+                for (int i = 0; i < node->possible_moves->size(); i++)
                 {
 
                     // omp_set_lock(&debug);
-                    // std::cout << omp_get_thread_num() << " rollout child " << i << std::endl;
+                    // // std::cout << omp_get_thread_num() << " rollout child " << i << std::endl;
                     // omp_unset_lock(&debug);
-        
-                    // Create one children node
-                    Node *child = new Node(board->get_copy(), node->possible_moves->move_at(i), node);
+
+                    // // Create one children node
+                    Node *child = new Node(node->board->get_copy(), node->possible_moves->move_at(i), node);
                     node->children[i] = child;
+
+                    // if (node->id == child->id)
+                    // {
+                    //     omp_set_lock(&debug);
+                    //     std::cout << omp_get_thread_num() << " created child with same id as parent " << i << std::endl;
+                    //     std::cout << "parent\n"
+                    //               << node->board->to_string() << "\nchild\n"
+                    //               << child->board->to_string() << std::endl;
+                    //     std::cin.get();
+                    //     omp_unset_lock(&debug);
+                    // }
 
                     // Rollout
                     Engine::IBoard *test_board = node->board->get_copy();
                     Engine::play(test_board, &player, &player);
-                
+
                     float gain = 0;
 
                     // The board is now in a terminal state, get the outcome
@@ -159,14 +178,10 @@ Engine::IMove *PLMonteCarloPlayer::choose_move(Engine::IBoard *board)
 
                     #pragma omp critical
                     {
-
-                        nodes[child->id].emplace(child);
+                        nodes[child->id].insert(child);
 
                         // Set this node to be updated in backprop
-                        gains[child->id] += gain;
-                        playeds[child->id] += 1;
-
-                        // std::cout << omp_get_thread_num() << " child " << i << " " << child->id << ": " << scores[child->id].score << " / " << scores[child->id].played << std::endl;
+                        back_prop[child->id].increase(gain, 1);
                     }
                 }
             }
@@ -175,28 +190,76 @@ Engine::IMove *PLMonteCarloPlayer::choose_move(Engine::IBoard *board)
 
             #pragma omp master
             {
-                // std::cout << omp_get_thread_num() << " backprop " << global_gain << " " << global_played << std::endl;
-
                 // 4) Backpropagation
                 // Backpropagate the outcome to parent node until we reach the root node
-                backprop();
+                while (!back_prop.empty())
+                {
+                    std::unordered_map<Engine::board_id, Score> to_do;
+
+                    // Prepare to-do maps
+                    for (auto it = back_prop.begin(); it != back_prop.end(); it++)
+                    {
+                        Engine::board_id id = it->first;
+                        to_do.emplace(id, it->second);
+                    }
+
+                    back_prop.clear();
+
+                    for (auto it = to_do.begin(); it != to_do.end(); it++)
+                    {
+                        Engine::board_id id = it->first;
+                        Score score = it->second;
+
+                        // Increase score for all nodes with this id
+                        scores[id].increase(score);
+
+                        // Get all nodes with this id
+                        std::unordered_set<Node *> *node_set = &nodes[id];
+
+                        for (auto it = node_set->begin(); it != node_set->end(); ++it)
+                        {
+                            Node *node = *it;
+
+                            // Add parent id to the ones to increase
+                            if (node->parent != NULL)
+                            {
+                                back_prop[node->parent->id].increase(score);
+
+                                // if (node->id == node->parent->id)
+                                // {
+                                //     std::cout << "same id as parent" << std::endl;
+
+                                //     std::cout << node->parent->board->to_string() << std::endl;
+
+                                //     for (int i = 0; i < node->parent->possible_moves->size(); i++)
+                                //     {
+                                //         std::cout << node->parent->children[i]->board->to_string() << std::endl;
+                                //     }
+
+                                //     std::cin.get();
+                                // }
+                            }
+                        }
+                    }
+                }
 
                 // Check loop condition
                 should_stop = scores[root.id].played >= rollouts;
 
-                std::cout << omp_get_thread_num() << " rollouts: " << scores[root.id].played << std::endl;
+                iterations++;
             }
 
-            #pragma omp barrier
+        #pragma omp barrier
         }
     }
- 
+
     std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
 
     if (verbose)
     {
         std::cout << "Max Depth: " << max_depth_reached << std::endl
                   << "Time: " << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count() << " [ms]" << std::endl
+                  << "Iterations: " << iterations << std::endl
                   << "Played: " << scores[root.id].played << std::endl
                   << "Current win rate: " << (scores[root.id].get_winrate() * 100) << "%" << std::endl;
     }
@@ -225,57 +288,4 @@ Engine::IMove *PLMonteCarloPlayer::choose_move(Engine::IBoard *board)
     Engine::IMove *selected_move = selected_node->move->get_copy();
 
     return selected_move;
-}
-
-void PLMonteCarloPlayer::backprop()
-{
-  
-    // 4) Backpropagation
-    // Backpropagate the outcome to parent node until we reach the root node
-    while (!gains.empty())
-    {
-
-        Engine::board_id id = gains.begin()->first;
-        float gain = gains.begin()->second;
-        int played = playeds.begin()->second;
-
-        // std::cout << "backprop " << id << ": " << gain << " / " << played << std::endl;
-
-        // Increase score for all nodes with this id
-        scores[id].increase(gain, played);
-
-        // Get all nodes with this id
-        std::unordered_set<Node*> node_set = nodes[id];
-
-        for (auto it = node_set.begin(); it != node_set.end(); ++it)
-        {
-            Node* node = *it;
-        
-            // Add parent id to the ones to increase
-            if(node->parent != NULL)
-            {
-                if(node->parent->id == node->id)
-                {
-                    // std::cout << " same id as parent\n" << node->board->to_string() << std::endl << node->parent->board->to_string() << std::endl << node->parent->move->to_string() << std::endl;
-
-                    // if(node->parent == node)
-                    // {
-                    //     std::cout << " parent is me" << std::endl;
-                    // }
-                }
-                else
-                {
-                    gains[node->parent->id] += gain;
-                    playeds[node->parent->id] += played;
-                    std::cout << " adding " << node->parent->id << std::endl;
-                }
-            }
-        }
-
-        // Remove id from the ones to check
-        gains.erase(id);
-        playeds.erase(id);
-
-        // std::cin.get();
-    }
 }

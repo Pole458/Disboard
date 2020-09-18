@@ -26,6 +26,28 @@ namespace ConnectFour
         return s;
     }
 
+    std::string complete_bitboard_to_string(BitBoard bitboard)
+    {
+
+        std::string s = "A B C D E F G \n";
+
+        for (int row_index = HEIGHT - 1; row_index >= 0; row_index--)
+        {
+            for (int column_index = 0; column_index < WIDTH; column_index++)
+            {
+                if (bitboard & mask_at(row_index, column_index))
+                    s += '1';
+                else
+                    s += '0';
+
+                s += ' ';
+            }
+            s += '\n';
+        }
+
+        return s;
+    }
+
     int count_bits(BitBoard bitboard)
     {
         int count = 0;

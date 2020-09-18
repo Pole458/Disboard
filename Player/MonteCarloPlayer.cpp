@@ -32,14 +32,11 @@ Engine::IMove *MonteCarloPlayer::choose_move(Engine::IBoard *board)
     // Hash map used to group nodes with the same id
     std::unordered_map<Engine::board_id, std::unordered_set<Node*>> nodes;
 
-    // Hash map used for backpropagation
-    std::unordered_map<Engine::board_id, float> gains;
-    std::unordered_map<Engine::board_id, int> playeds;
+    // Hash map of scores used for backpropagation
+    std::unordered_map<Engine::board_id, Score> back_prop;
 
     // Creates root node for the game-tree starting from the current board configuration.
     Node root = Node(board->get_copy());
-
-    // nodes[root.id].emplace(&root);
 
     std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
 
@@ -92,6 +89,13 @@ Engine::IMove *MonteCarloPlayer::choose_move(Engine::IBoard *board)
             }
 
             depth++;
+
+            // if(depth > 42)
+            // {
+            //     std::cout << "depth limit" << std::endl;
+            //     std::cin.get();
+            // }
+           
             node = selected_node;
         }
 
@@ -100,9 +104,6 @@ Engine::IMove *MonteCarloPlayer::choose_move(Engine::IBoard *board)
 
         // 2) Expansion
         // If this node it's not a terminal node, expand it
-
-        float gain = 0;
-        int played = 1;
 
         if (!node->is_leaf())
         {
@@ -125,14 +126,16 @@ Engine::IMove *MonteCarloPlayer::choose_move(Engine::IBoard *board)
             // Node the board is in a terminal state, get the outcome
             if (test_board->status == Engine::IBoard::Draw)
             {
-                gains[node->id] += 0.5f;
+                back_prop[node->id].increase(0.5f, 1);
             }
             else if ((my_turn == 1 && test_board->status == Engine::IBoard::First) || (my_turn == 0 && test_board->status == Engine::IBoard::Second))
             {
-                gains[node->id] += 1;
+                back_prop[node->id].increase(1, 1);
             }
-
-            playeds[node->id] += 1;
+            else
+            {
+                back_prop[node->id].increase(0, 1);
+            }
 
             delete test_board;
         }
@@ -141,51 +144,91 @@ Engine::IMove *MonteCarloPlayer::choose_move(Engine::IBoard *board)
             // Node it's a terminal node, get the outcome
             if (node->board->status == Engine::IBoard::Draw)
             {
-                gains[node->id] += 0.5f;
+                back_prop[node->id].increase(0.5f, 1);
             }
             else if ((my_turn == 1 && node->board->status == Engine::IBoard::First) || (my_turn == 0 && node->board->status == Engine::IBoard::Second))
             {
-                gains[node->id] += 1;
+                back_prop[node->id].increase(1, 1);
             }
-
-            playeds[node->id] += 1;
+            else
+            {
+                back_prop[node->id].increase(0, 1);
+            }
         }
 
         // 4) Backpropagation
         // Backpropagate the outcome to parent node until we reach the root node
-        while (!playeds.empty())
+        // int i = 0;
+
+        while (!back_prop.empty())
         {
+            std::unordered_map<Engine::board_id, Score> to_do;
 
-            Engine::board_id id = playeds.begin()->first;
-            int played = playeds.begin()->second;
-            float gain = gains[id];
-
-            // std::cout << "backprop " << id << ": " << gain << " / " << played << std::endl;
-
-            // Increase score for all nodes with this id
-            scores[id].increase(gain, played);
-
-            // Get all nodes with this id
-            std::unordered_set<Node*> *node_set = &nodes[id];
-
-            for (auto it = node_set->begin(); it != node_set->end(); ++it)
+            // Prepare to-do maps
+            for(auto it = back_prop.begin(); it != back_prop.end(); it++)
             {
-                Node* node = *it;
-            
-                // Add parent id to the ones to increase
-                if(node->parent != NULL)
+                Engine::board_id id = it->first;
+                to_do.emplace(id, it->second);
+            }
+
+            back_prop.clear();
+
+            // Node* first_node = NULL;
+
+            for(auto it = to_do.begin(); it != to_do.end(); it++)
+            {
+                Engine::board_id id = it->first;
+                Score score = it->second;
+
+                // Increase score for all nodes with this id
+                scores[id].increase(score);
+
+                // Get all nodes with this id
+                std::unordered_set<Node*> *node_set = &nodes[id];
+
+                for (auto it = node_set->begin(); it != node_set->end(); ++it)
                 {
-                    gains[node->parent->id] += gain;
-                    playeds[node->parent->id] += played;
-                    // std::cout << " adding " << node->parent->id << std::endl;
+                    Node* node = *it;
+
+                    // if(first_node == NULL)
+                    // {
+                    //     first_node = node;
+                    // }
+                    // else
+                    // {
+                    //     if(first_node->board->turn != node->board->turn)
+                    //     {
+                    //         std::cout << " different levels " << first_node->board->turn << " " << node->board->turn << std::endl
+                    //         << " but same id " << first_node->id << " " << node->id << std::endl;
+                    //         std::cout << first_node->board->to_string() << std::endl << node->board->to_string() << std::endl;
+                    //         std::cin.get();
+                    //     }
+                    // }
+                
+                    // Add parent id to the ones to increase
+                    if(node->parent != NULL)
+                    {
+                        back_prop[node->parent->id].increase(score);
+
+                        // if(i > 100)
+                        // {
+                        //     std::cout << "child " << node->board->turn << std::endl << node->board->to_string() << std::endl;
+                        //     std::cout << "parent " << node->parent->board->turn << std::endl << node->parent->board->to_string() << std::endl;
+                        // }
+                    }
                 }
             }
 
-            // Remove id from the ones to check
-            gains.erase(id);
-            playeds.erase(id);
+            // i++;
 
-            // std::cin.get();
+            // if(i > 100)
+            // {
+            //     std::cout << "backprob limit" << std::endl;
+            //     std::cout << back_prop.size() << std::endl;
+            //     std::cout << to_do.size() << std::endl;
+                
+            //     std::cin.get();
+            // }
         }
 
         iterations++;

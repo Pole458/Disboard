@@ -6,9 +6,8 @@
 #include "Node.h"
 #include "Score.h"
 
-#include <unordered_map>
-#include <unordered_set>
 #include <omp.h>
+
 
 class PLMonteCarloPlayer : public IPlayer
 {
@@ -18,15 +17,6 @@ public:
     Engine::IMove *choose_move(Engine::IBoard *board);
 
 private:
-
-    // Hash map used to store scoring for each possible board configuration.
-    std::unordered_map<Engine::board_id, Score> scores;
-
-    std::unordered_map<Engine::board_id, std::unordered_set<Node*>> nodes;
-
-    // Queues of ids to update
-    std::unordered_map<Engine::board_id, float> gains;
-    std::unordered_map<Engine::board_id, int> playeds;
 
     // Internal random player used to for random rollout
     RandomPlayer player;
@@ -38,6 +28,4 @@ private:
     int rollout_size;
 
     bool verbose;
-
-    void backprop();
 };

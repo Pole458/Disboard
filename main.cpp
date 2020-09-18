@@ -75,22 +75,35 @@ void test_games(IPlayer *p1, IPlayer *p2, int n)
 int main()
 {
     // HumanPlayer p1;
-    // RandomPlayer p1;
+    RandomPlayer p1;
     // MiniMaxPlayer p1(14, true);
-    MonteCarloPlayer p1(1000000, true);
+    // MonteCarloPlayer p1(1000000, true);
     // PTMonteCarloPlayer p1(100000, true);
     // PRMonteCarloPlayer p1(10000, true);
     // PLMonteCarloPlayer p1(10000, 4, false);
 
-    HumanPlayer p2;
+    // HumanPlayer p2;
     // RandomPlayer p2;
     // MiniMaxPlayer p2(12, true);
-    // MonteCarloPlayer p2(1000000, true);
+    // MonteCarloPlayer p2(1000, true);
     // PTMonteCarloPlayer p2(100000, true);
     // PRMonteCarloPlayer p2(10000, false);
-    // PLMonteCarloPlayer p2(100, 1, true);
-    // PLMonteCarloPlayer p2(100000, 4, true);
+    // PLMonteCarloPlayer p2(10000, 1, true);
+    PLMonteCarloPlayer p2(1000000, 4, true);
     // PMiniMaxPlayer p2(14, true);
+
+    // BitBoard b = 4438047605121UL;
+
+    // std::cout << bitboard_to_string(k1) << std::endl;
+    // std::cout << bitboard_to_string(k2) << std::endl;
+    // std::cout << bitboard_to_string(k3) << std::endl;
+    // std::cout << bitboard_to_string(k4) << std::endl;
+    // std::cout << (get_flipped_bitboard(get_flipped_bitboard(b)) == b) << std::endl;
+
+
+    // std::cout << bitboard_to_string(get_flipped_bitboard(get_flipped_bitboard(b))) << std::endl;
+
+    // std::cout << b << " " << get_flipped_bitboard(get_flipped_bitboard(b)) << std::endl;
 
     single_game(&p1, &p2);
 

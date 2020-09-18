@@ -118,11 +118,6 @@ namespace ConnectFour
 
     Engine::board_id Board::get_id()
     {
-        // return both + current + bottom_row_mask;
-        
-        // BitBoard flipped_both = get_flipped_bitboard(both);
-        // BitBoard flipper_current = get_flipped_bitboard(current);
-
         BitBoard key = both + current + bottom_row_mask;
         BitBoard flipped_key = get_flipped_bitboard(key);
         return key < flipped_key ? key : flipped_key;

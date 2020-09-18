@@ -5,8 +5,20 @@
 
 Score::Score()
 {
-    played = 0;
     score = 0;
+    played = 0;
+}
+
+Score::Score(const Score &score)
+{
+    this->score = score.score;
+    this->played = score.played;
+}
+
+Score::Score(float score, float played)
+{
+    this->score = score;
+    this->played = played;
 }
 
 float Score::get_ucb(int total_played)
@@ -31,4 +43,10 @@ void Score::increase(float score, float played)
 {
     this->score += score;
     this->played += played;
+}
+
+void Score::increase(Score score)
+{
+    played += score.played;
+    this->score += score.score;
 }
