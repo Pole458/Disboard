@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../Engine/IPlayer.h"
+#include "RandomPlayer.h"
 #include "Node.h"
 #include "Score.h"
 
@@ -10,27 +11,38 @@
 class MiniMaxPlayer : public IPlayer
 {
 public:
-    MiniMaxPlayer(int depth, bool verbose = false);
+    MiniMaxPlayer(int depth, bool verbose = false, int cache_size = 100000000);
+
     Engine::IMove *choose_move(Engine::IBoard *board);
 
-    bool uses_scores;
-
 private:
-    int minimize(Node *node, int depth, int alpha, int beta);
-    int maximize(Node *node, int depth, int alpha, int beta);
+    RandomPlayer random_player;
+
+    float minimize(Node *node, int depth, float alpha, float beta);
+    float maximize(Node *node, int depth, float alpha, float beta);
+    
+    // Scoring system
+    float get_score(Node* node);
+    float get_heuristic_score(Node *node);
+
+    // Cache
+    int cache_size;
+    bool is_id_scored(Engine::board_id id);
+    float get_cached_score(Engine::board_id id);
+    void set_cached_score(Engine::board_id id, float score);
+   
+    std::unordered_map<Engine::board_id, Engine::board_id> cached_id;
+    std::unordered_map<Engine::board_id, float> cached_scores;
 
     // Max depth at which to explore the game-tree
     int max_depth;
 
-    // Hash map used to store scoring for each possible board configuration.
-    std::unordered_map<Engine::board_id, int> scores;
-
-    // Hash map used to to tell wheather a particular board configuration has already been evaluated.
-    std::unordered_map<Engine::board_id, bool> evaluated;
+    int my_turn;
 
     // Debug / Analytics
     bool verbose;
+    int leafs_reached;
     int nodes_evaluated;
-    int pruned;
-    int cached;
+    int nodes_pruned;
+    int cache_hits;
 };

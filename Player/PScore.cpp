@@ -7,7 +7,7 @@
 PScore::PScore()
 {
     played = 0;
-    score = 0;
+    wins = 0;
     
     omp_init_lock(&lock);
 }
@@ -19,7 +19,7 @@ float PScore::get_ucb(int total_played)
     float ucb;
 
     if(played == 0) ucb = std::numeric_limits<float>::max();
-    else ucb = score / played + 2 * sqrt(log(total_played) / played);
+    else ucb = wins / played + 2 * sqrt(log(total_played) / played);
 
     omp_unset_lock(&lock);
 
@@ -33,7 +33,7 @@ float PScore::get_inverse_ucb(int total_played)
     float ucb;
 
     if(played == 0) ucb = std::numeric_limits<float>::max();
-    else ucb = (played - score) / played + 2 * sqrt(log(total_played) / played);
+    else ucb = (played - wins) / played + 2 * sqrt(log(total_played) / played);
 
     omp_unset_lock(&lock);
 
@@ -51,11 +51,11 @@ float PScore::get_played()
     return played;
 }
 
-void  PScore::increase(float score, float played)
+void  PScore::increase(float wins, float played)
 {
     omp_set_lock(&lock);
 
-    this->score += score;
+    this->wins += wins;
     this->played += played;
 
     omp_unset_lock(&lock);
@@ -67,9 +67,19 @@ float PScore::get_winrate()
 
     float winrate;
     if(played == 0) winrate = std::numeric_limits<float>::max();
-    else winrate = score / played;
+    else winrate = wins / played;
 
     omp_unset_lock(&lock);
 
     return winrate;
+}
+
+void PScore::increase(PScore score)
+{
+    omp_set_lock(&lock);
+    
+    wins += score.wins;
+    played += score.played;
+    
+    omp_unset_lock(&lock);
 }

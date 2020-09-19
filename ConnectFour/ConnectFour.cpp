@@ -99,7 +99,7 @@ namespace ConnectFour
         return false;
     }
 
-    int get_score(BitBoard bitboard)
+    int get_heuristic_score(BitBoard bitboard)
     {
         int score = 0;
 

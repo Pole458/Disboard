@@ -4,6 +4,8 @@
 #include <string>
 #include <chrono>
 
+#include <unordered_set>
+
 PRMonteCarloPlayer::PRMonteCarloPlayer(int rollouts, bool verbose)
 {
     this->rollouts = rollouts;
@@ -29,17 +31,20 @@ Engine::IMove *PRMonteCarloPlayer::choose_move(Engine::IBoard *board)
     // Hash map used to store scoring for each possible board configuration.
     std::unordered_map<Engine::board_id, Score> global_scores;
 
-    // omp_set_num_threads(2);
-
     std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
 
-#pragma omp parallel reduction(max \
-                               : max_depth_reached)
+    #pragma omp parallel reduction(max:max_depth_reached) reduction(+:iterations)
     {
 
         Node root = Node(board->get_copy());
 
         std::unordered_map<Engine::board_id, Score> scores;
+
+        // Hash map of scores used for backpropagation
+        std::unordered_map<Engine::board_id, Score> back_prop;
+
+        // Hash map used to group nodes with the same id
+        std::unordered_map<Engine::board_id, std::unordered_set<Node*>> nodes;
 
         while(scores[root.id].played < rollouts / omp_get_num_threads())
         {
@@ -101,6 +106,11 @@ Engine::IMove *PRMonteCarloPlayer::choose_move(Engine::IBoard *board)
                 // Expand node
                 node->expand();
 
+                for(int i = 0; i < node->possible_moves->size(); i++)
+                {
+                    nodes[node->children[i]->id].insert(node->children[i]);
+                }
+
                 // Pick one children node
                 node = node->children[0];
 
@@ -113,13 +123,17 @@ Engine::IMove *PRMonteCarloPlayer::choose_move(Engine::IBoard *board)
                 // The board is now in a terminal state, get the outcome
                 if (test_board->status == Engine::IBoard::Draw)
                 {
-                    gain = 0.5f;
+                    back_prop[node->id].increase(0.5f, 1);
                 }
                 else if ((my_turn == 1 && test_board->status == Engine::IBoard::First) || (my_turn == 0 && test_board->status == Engine::IBoard::Second))
                 {
-                    gain = 1;
+                    back_prop[node->id].increase(1, 1);
                 }
-
+                else
+                {
+                    back_prop[node->id].increase(0, 1);
+                }
+                
                 delete test_board;
             }
             else
@@ -127,33 +141,68 @@ Engine::IMove *PRMonteCarloPlayer::choose_move(Engine::IBoard *board)
                 // Node it's a terminal node, get the outcome
                 if (node->board->status == Engine::IBoard::Draw)
                 {
-                    gain = 0.5f;
+                    back_prop[node->id].increase(0.5f, 1);
                 }
                 else if ((my_turn == 1 && node->board->status == Engine::IBoard::First) || (my_turn == 0 && node->board->status == Engine::IBoard::Second))
                 {
-                    gain = 1;
+                    back_prop[node->id].increase(1, 1);
+                }
+                else
+                {
+                    back_prop[node->id].increase(0, 1);
                 }
             }
 
             // 4) Backpropagation
             // Backpropagate the outcome to parent node until we reach the root node
-            while (node != NULL)
+            while (!back_prop.empty())
             {
-                // Update node's values
-                scores[node->id].increase(gain, played);
+                std::unordered_map<Engine::board_id, Score> to_do;
 
-                // Go to parent
-                node = node->parent;
+                // Prepare to-do maps
+                for(auto it = back_prop.begin(); it != back_prop.end(); it++)
+                {
+                    Engine::board_id id = it->first;
+                    to_do.emplace(id, it->second);
+                }
+
+                back_prop.clear();
+
+                for(auto it = to_do.begin(); it != to_do.end(); it++)
+                {
+                    Engine::board_id id = it->first;
+                    Score score = it->second;
+
+                    // Increase score for all nodes with this id
+                    scores[id].increase(score);
+
+                    // Get all nodes with this id
+                    std::unordered_set<Node*> *node_set = &nodes[id];
+
+                    for (auto it = node_set->begin(); it != node_set->end(); ++it)
+                    {
+                        Node* node = *it;
+                    
+                        // Add parent id to the ones to increase
+                        if(node->parent != NULL)
+                        {
+                            back_prop[node->parent->id].increase(score);
+
+                        }
+                    }
+                }
             }
+
+            iterations++;
         }
 
-// Reduce the scores
-#pragma omp critical
+        // Reduce the scores
+        #pragma omp critical
         {
-            global_scores[root.id].increase(scores[root.id].score, scores[root.id].played);
+            global_scores[root.id].increase(scores[root.id].wins, scores[root.id].played);
             for (int i = 0; i < root.possible_moves->size(); i++)
             {
-                global_scores[root.children[i]->id].increase(scores[root.children[i]->id].score, scores[root.children[i]->id].played);
+                global_scores[root.children[i]->id].increase(scores[root.children[i]->id].wins, scores[root.children[i]->id].played);
             }
         }
     }
@@ -164,6 +213,7 @@ Engine::IMove *PRMonteCarloPlayer::choose_move(Engine::IBoard *board)
     {
         std::cout << "Max Depth: " << max_depth_reached << std::endl
                   << "Time: " << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count() << " [ms]" << std::endl
+                  << "Iterations: " << iterations << std::endl
                   << "Played: " << global_scores[global_root.id].played << std::endl
                   << "Current win rate: " << (global_scores[global_root.id].get_winrate() * 100) << "%" << std::endl;
     }

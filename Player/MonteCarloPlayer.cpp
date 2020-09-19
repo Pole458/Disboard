@@ -89,12 +89,6 @@ Engine::IMove *MonteCarloPlayer::choose_move(Engine::IBoard *board)
             }
 
             depth++;
-
-            // if(depth > 42)
-            // {
-            //     std::cout << "depth limit" << std::endl;
-            //     std::cin.get();
-            // }
            
             node = selected_node;
         }
@@ -158,7 +152,6 @@ Engine::IMove *MonteCarloPlayer::choose_move(Engine::IBoard *board)
 
         // 4) Backpropagation
         // Backpropagate the outcome to parent node until we reach the root node
-        // int i = 0;
 
         while (!back_prop.empty())
         {
@@ -172,8 +165,6 @@ Engine::IMove *MonteCarloPlayer::choose_move(Engine::IBoard *board)
             }
 
             back_prop.clear();
-
-            // Node* first_node = NULL;
 
             for(auto it = to_do.begin(); it != to_do.end(); it++)
             {
@@ -189,46 +180,15 @@ Engine::IMove *MonteCarloPlayer::choose_move(Engine::IBoard *board)
                 for (auto it = node_set->begin(); it != node_set->end(); ++it)
                 {
                     Node* node = *it;
-
-                    // if(first_node == NULL)
-                    // {
-                    //     first_node = node;
-                    // }
-                    // else
-                    // {
-                    //     if(first_node->board->turn != node->board->turn)
-                    //     {
-                    //         std::cout << " different levels " << first_node->board->turn << " " << node->board->turn << std::endl
-                    //         << " but same id " << first_node->id << " " << node->id << std::endl;
-                    //         std::cout << first_node->board->to_string() << std::endl << node->board->to_string() << std::endl;
-                    //         std::cin.get();
-                    //     }
-                    // }
                 
                     // Add parent id to the ones to increase
                     if(node->parent != NULL)
                     {
                         back_prop[node->parent->id].increase(score);
 
-                        // if(i > 100)
-                        // {
-                        //     std::cout << "child " << node->board->turn << std::endl << node->board->to_string() << std::endl;
-                        //     std::cout << "parent " << node->parent->board->turn << std::endl << node->parent->board->to_string() << std::endl;
-                        // }
                     }
                 }
             }
-
-            // i++;
-
-            // if(i > 100)
-            // {
-            //     std::cout << "backprob limit" << std::endl;
-            //     std::cout << back_prop.size() << std::endl;
-            //     std::cout << to_do.size() << std::endl;
-                
-            //     std::cin.get();
-            // }
         }
 
         iterations++;

@@ -9,8 +9,8 @@ public:
     Score(const Score &score);
     Score(float score, float played);
 
-    float played;
-    float score;
+    float wins;
+    int played;
 
     float get_ucb(int total_played);
     float get_inverse_ucb(int total_played);

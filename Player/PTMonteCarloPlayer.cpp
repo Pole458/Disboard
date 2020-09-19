@@ -24,17 +24,16 @@ Engine::IMove *PTMonteCarloPlayer::choose_move(Engine::IBoard *board)
     // Hash map used to store scoring for each possible board configuration.
     std::unordered_map<Engine::board_id, PScore> scores;
 
-    omp_lock_t scores_lock;
-    omp_init_lock(&scores_lock);
+    // Hash map used to group nodes with the same id
+    std::unordered_map<Engine::board_id, std::unordered_set<PNode*>> nodes;
+
+    // Hash map of scores used for backpropagation
+    std::unordered_map<Engine::board_id, PScore> back_prop;    
 
     // Creates root node for the game-tree starting from the current board configuration.
     PNode root = PNode(board->get_copy());
 
-    scores.try_emplace(root.id);
-
-
-#pragma omp parallel for reduction(max \
-                                   : max_depth_reached)
+    #pragma omp parallel for reduction(max:max_depth_reached)
     for (int iterations = 0; iterations < rollouts; iterations++)
     {
         PNode *node = &root;
@@ -67,20 +66,19 @@ Engine::IMove *PTMonteCarloPlayer::choose_move(Engine::IBoard *board)
                     }
                     else
                     {
-                        if (node->board->turn % 2 == my_turn)
+                        #pragma omp critical(scores)
                         {
-                            // If it's my turn, use the ucb value that maximize my winrate
-                            omp_set_lock(&scores_lock);
-                            score = scores[n->id].get_ucb(scores.at(root.id).get_played());
-                            omp_unset_lock(&scores_lock);
-                        }
-                        else
-                        {
-                            // If it's my opponent's turn, use the ucb value that minimize my winrate
-                            omp_set_lock(&scores_lock);
-                            score = scores[n->id].get_inverse_ucb(scores.at(root.id).get_played());
-                            omp_unset_lock(&scores_lock);
-                        }
+                            if (node->board->turn % 2 == my_turn)
+                            {
+                                // If it's my turn, use the ucb value that maximize my winrate
+                                score = scores[n->id].get_ucb(scores.at(root.id).get_played());
+                            }
+                            else
+                            {
+                                // If it's my opponent's turn, use the ucb value that minimize my winrate
+                                score = scores[n->id].get_inverse_ucb(scores.at(root.id).get_played());
+                            }
+                        }                        
                     }
 
                     if (score > highscore)
@@ -106,14 +104,19 @@ Engine::IMove *PTMonteCarloPlayer::choose_move(Engine::IBoard *board)
         // 2) Expansion
         // If this node it's not a terminal node, expand it
 
-        float gain;
-        int played;
-
         if (!node->is_leaf())
         {
             // Expand node
             node->expand();
 
+            #pragma omp critical(nodes)
+            {
+                for(int i = 0; i < node->possible_moves->size(); i++)
+                {
+                    nodes[node->children[i]->id].insert(node->children[i]);
+                }
+            }
+         
             // Pick one children node
             node = node->children[0];
 
@@ -123,48 +126,93 @@ Engine::IMove *PTMonteCarloPlayer::choose_move(Engine::IBoard *board)
             Engine::IBoard *test_board = node->board->get_copy();
             Engine::play(test_board, &player, &player);
 
-            // The board is now in a terminal state, get the outcome
-            if (test_board->status == Engine::IBoard::Draw)
+            #pragma omp critical(back_prob)
             {
-                gain = 0.5f;
+                // The board is now in a terminal state, get the outcome
+                if (test_board->status == Engine::IBoard::Draw)
+                {
+                    back_prop[node->id].increase(0.5f, 1);
+                }
+                else if ((my_turn == 1 && test_board->status == Engine::IBoard::First) || (my_turn == 0 && test_board->status == Engine::IBoard::Second))
+                {
+                    back_prop[node->id].increase(1, 1);
+                }
+                else
+                {
+                    back_prop[node->id].increase(0, 1);
+                }
             }
-            else if ((my_turn == 1 && test_board->status == Engine::IBoard::First) || (my_turn == 0 && test_board->status == Engine::IBoard::Second))
-            {
-                gain = 1;
-            }
-
+           
             delete test_board;
         }
         else
         {
-            // Node it's a terminal node, get the outcome
-            if (node->board->status == Engine::IBoard::Draw)
+            #pragma omp critical(back_prob)
             {
-                gain = 0.5f;
-            }
-            else if ((my_turn == 1 && node->board->status == Engine::IBoard::First) || (my_turn == 0 && node->board->status == Engine::IBoard::Second))
-            {
-                gain = 1;
+                // Node it's a terminal node, get the outcome
+                if (node->board->status == Engine::IBoard::Draw)
+                {
+                    back_prop[node->id].increase(0.5f, 1);
+                }
+                else if ((my_turn == 1 && node->board->status == Engine::IBoard::First) || (my_turn == 0 && node->board->status == Engine::IBoard::Second))
+                {
+                    back_prop[node->id].increase(1, 1);
+                }
+                else
+                {
+                    back_prop[node->id].increase(0, 1);
+                }
             }
         }
 
         // 4) Backpropagation
         // Backpropagate the outcome to parent node until we reach the root node
 
-        omp_set_lock(&scores_lock);
-        while (node != NULL)
+        while (!back_prop.empty())
         {
-            // Update node's values
+            std::unordered_map<Engine::board_id, PScore> to_do;
+
+            // Prepare to-do maps
+            for(auto it = back_prop.begin(); it != back_prop.end(); it++)
+            {
+                Engine::board_id id = it->first;
+                to_do.emplace(id, it->second);
+            }
+
+            #pragma omp critical(back_prop)
+            {
+                back_prop.clear();
+            }
             
-            scores[node->id].increase(gain, played);
+            for(auto it = to_do.begin(); it != to_do.end(); it++)
+            {
+                Engine::board_id id = it->first;
+                PScore score = it->second;
 
-            // Go to parent
-            node = node->parent;
+                // Increase score for all nodes with this id
+                #pragma omp critical(scores)
+                {
+                    scores[id].increase(score);
+                }
+
+                // Get all nodes with this id
+                std::unordered_set<PNode*> *node_set = &nodes[id];
+
+                for (auto it = node_set->begin(); it != node_set->end(); ++it)
+                {
+                    PNode* node = *it;
+                
+                    // Add parent id to the ones to increase
+                    if(node->parent != NULL)
+                    {
+                        #pragma omp critical(back_prop)
+                        {
+                            back_prop[node->parent->id].increase(score);
+                        }
+                    }
+                }
+            }
         }
-        omp_unset_lock(&scores_lock);
-
-        explored_node->set_explored(false);
-
     }
 
     std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();

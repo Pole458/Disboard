@@ -4,25 +4,32 @@
 #include <iostream>
 #include <chrono>
 
-PMiniMaxPlayer::PMiniMaxPlayer(int depth, bool verbose)
+PMiniMaxPlayer::PMiniMaxPlayer(int depth, bool verbose, int cache_size)
 {
     this->max_depth = depth;
     this->verbose = verbose;
+    this->cache_size = cache_size;
 
-    omp_init_lock(&lock);
+    for(int i = 0; i < omp_get_max_threads(); i++)
+    {
+        random_players.emplace_back();
+    }
 }
 
 Engine::IMove *PMiniMaxPlayer::choose_move(Engine::IBoard *board)
 {
 
+    my_turn = board->turn % 2;
+
     // Reset analytcs values
     nodes_evaluated = 0;
-    pruned = 0;
-    cached = 0;
+    leafs_reached = 0;
+    nodes_pruned = 0;
+    cache_hits = 0;
 
-    int alpha = std::numeric_limits<int>::min();
+    int alpha = std::numeric_limits<int>::lowest();
     int beta = std::numeric_limits<int>::max();
-    int highscore = std::numeric_limits<int>::min();
+    int highscore = std::numeric_limits<int>::lowest();
 
     Node root(board->get_copy());
     root.expand();
@@ -33,16 +40,19 @@ Engine::IMove *PMiniMaxPlayer::choose_move(Engine::IBoard *board)
     // Search for the children node with the maximum score
     for (int i = 0; i < root.possible_moves->size(); i++)
     {
-        int score = minimize(root.children[i], max_depth - 1, alpha, beta);
-
-        if (verbose)
-            std::cout << root.children[i]->move->to_string() << " score: " << score << std::endl;
+        Node* child = root.children[i];
+        int score = minimize(child, max_depth - 1, alpha, beta);
 
         if (score > highscore)
         {
             highscore = score;
-            selected_move = root.children[i]->move;
+            selected_move = child->move;
             alpha = std::max(alpha, highscore);
+        }
+
+        if (verbose)
+        {
+            std::cout << child->move->to_string() << " score: " << score << std::endl;
         }
     }
 
@@ -50,252 +60,280 @@ Engine::IMove *PMiniMaxPlayer::choose_move(Engine::IBoard *board)
 
     if (verbose)
     {
-        std::cout << "Nodes visited " << nodes_evaluated << std::endl
-                  << "Time: " << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count() << " [ms]" << std::endl
-                  << "Pruned: " << pruned << std::endl
-                  << "Cache hits " << cached << std::endl;
+        std::cout
+            << "Time: " << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count() << " [ms]" << std::endl
+            << "Nodes evaluated " << nodes_evaluated << std::endl
+            << "Leafs reached " << leafs_reached << std::endl   
+            << "Nodes pruned: " << nodes_pruned << std::endl
+            << "Cache hits " << cache_hits << std::endl;
     }
 
-    // Clear caches
-    scores.clear();
+    // Clear cache
+    cached_id.clear();
+    cached_scores.clear();
 
     return selected_move->get_copy();
 }
 
-int PMiniMaxPlayer::maximize(Node *node, int depth, int alpha, int beta)
+
+float PMiniMaxPlayer::maximize(Node *node, int depth, float alpha, float beta)
 {
 
     // If this board position has already been evaluated, return the cached value
-    if (scores.find(node->id) != scores.end())
+    if (is_id_scored(node->id))
     {
-        cached++;
-        return scores.at(node->id);
+        cache_hits++;
+        return get_cached_score(node->id);
+    }
+
+    // If node is terminal, return score
+    if(node->is_leaf())
+    {
+        leafs_reached++;
+        float score = get_score(node);
+        set_cached_score(node->id, score);
+        return score;
+    }
+
+    // If max depth was reached, get heuristic score
+    if (depth == 0)
+    {
+        leafs_reached++;
+        float score = get_heuristic_score(node); 
+        set_cached_score(node->id, score);
+        return score;
     }
 
     nodes_evaluated++;
 
-    if (depth == 0 || node->is_leaf())
+    // Parallel expansion
+    if(!node->expanded)
     {
-        // If node is terminal or max depth was reached, evaluate board configuration
-        int score = -node->board->get_score();
-        omp_set_lock(&lock);
-        scores.emplace(node->id, score); 
-        omp_unset_lock(&lock);
-        return score;
+        node->children = new Node*[node->possible_moves->size()];
+
+        #pragma omp parallel for
+        for (int i = 0; i < node->possible_moves->size(); i++)
+        {
+            node->children[i] = new Node(node->board->get_copy(), node->possible_moves->move_at(i), node);;
+        }
+
+        node->expanded = true;
     }
 
-    node->expand();
-    // Search for the children node with the maximum score
+    float highscore = std::numeric_limits<float>::lowest();
 
-    int highscore = minimize(node->children[0], depth - 1, alpha, beta);
+    // Search first for cached results in order to optimize pruning
+    #pragma omp parallel for reduction(max:highscore)
+    for(int i = 0; i < node->possible_moves->size(); i++)
+    {
+        if(is_id_scored(node->children[i]->id))
+        {
+            highscore = std::max(highscore, get_cached_score(node->children[i]->id));
+        }
+    }
+    
+    // Can we prune?
     alpha = std::max(alpha, highscore);
     if (beta <= alpha)
     {
-        pruned++;
+        nodes_pruned++;      
     }
     else
     {
-        omp_lock_t prune_lock;
-        omp_init_lock(&prune_lock);
-
-        bool prnd = false;
-
-#pragma omp parallel for
-        for (int i = 1; i < node->possible_moves->size(); i++)
+        // Search in other nodes not yet explored
+        for (int i = 0; i < node->possible_moves->size(); i++)
         {
-            omp_set_lock(&prune_lock);
+            highscore = std::max(highscore, minimize(node->children[i], depth - 1, alpha, beta));
 
-            if (!prnd)
+            // Prune search
+            alpha = std::max(alpha, highscore);
+            if (beta <= alpha)
             {
-                omp_unset_lock(&prune_lock);
-
-                int score = pminimize(node->children[i], depth - 1, alpha, beta);
-
-                omp_set_lock(&prune_lock);
-
-                // Prune search
-                highscore = std::max(highscore, score);
-                alpha = std::max(alpha, highscore);
-                if (beta <= alpha)
-                {
-                    pruned++;
-                    prnd = true;
-                }
+                nodes_pruned++;
+                break;
             }
-
-            omp_unset_lock(&prune_lock);
         }
     }
+    
+    // Parallel reduction
+    if(!node->expanded)
+    {
+        #pragma omp parallel for
+        for(int i = 0; i < node->possible_moves->size(); i++)
+        {
+            delete node->children[i];
+        }
 
-    node->reduce();
+        delete[] node->children;
 
-    omp_set_lock(&lock);
-    scores.emplace(node->id, highscore);
-    omp_unset_lock(&lock);
+        node->expanded = false;
+    }
+
+    set_cached_score(node->id, highscore);
 
     return highscore;
 }
 
-int PMiniMaxPlayer::minimize(Node *node, int depth, int alpha, int beta)
+float PMiniMaxPlayer::minimize(Node *node, int depth, float alpha, float beta)
 {
+
     // If this board position has already been evaluated, return the cached value
-    if (scores.find(node->id) != scores.end())
+    if (is_id_scored(node->id))
     {
-        cached++;
-        return scores.at(node->id);
+        cache_hits++;
+        return get_cached_score(node->id);
     }
 
-    if (depth == 0 || node->is_leaf())
+    // If node is terminal, return score
+    if(node->is_leaf())
     {
-        // If node is terminal or max depth was reached, evaluate board configuration
-        int score = node->board->get_score();
-        omp_set_lock(&lock);
-        scores.emplace(node->id, score);
-        omp_unset_lock(&lock);
+        leafs_reached++;
+        float score = get_score(node);
+        set_cached_score(node->id, score);
+        return score;
+    }
+
+    // If max depth was reached, get heuristic score
+    if (depth == 0)
+    {
+        leafs_reached++;
+        float score = get_heuristic_score(node); 
+        set_cached_score(node->id, score);
         return score;
     }
 
     nodes_evaluated++;
 
-    node->expand();
-    int lowscore = maximize(node->children[0], depth - 1, alpha, beta);
+    // Parallel expansion
+    if(!node->expanded)
+    {
+        node->children = new Node*[node->possible_moves->size()];
+
+        #pragma omp parallel for
+        for (int i = 0; i < node->possible_moves->size(); i++)
+        {
+            node->children[i] = new Node(node->board->get_copy(), node->possible_moves->move_at(i), node);;
+        }
+
+        node->expanded = true;
+    }
+
+    float lowscore = std::numeric_limits<float>::max();
+
+    // Search first for cached results in order to optimize pruning
+    #pragma omp parallel for reduction(min:lowscore)
+    for(int i = 0; i < node->possible_moves->size(); i++)
+    {
+        if(is_id_scored(node->children[i]->id))
+        {
+            lowscore = std::max(lowscore, get_cached_score(node->children[i]->id));
+        }
+    }
+   
+    // Can we prune?
     beta = std::min(beta, lowscore);
     if (beta <= alpha)
     {
-        pruned++;
+        nodes_pruned++;       
     }
     else
     {
-        omp_lock_t prune_lock;
-        omp_init_lock(&prune_lock);
-
-        bool prnd = false;
-
-// Search for the children node with the minimum score
-#pragma omp parallel for
-        for (int i = 1; i < node->possible_moves->size(); i++)
+        // Search for the children node with the minimum score
+        for (int i = 0; i < node->possible_moves->size(); i++)
         {
-            omp_set_lock(&prune_lock);
+            lowscore = std::min(lowscore, maximize(node->children[i], depth - 1, alpha, beta));
 
-            if (!prnd)
+            // Prune search
+            beta = std::min(beta, lowscore);
+            if (beta <= alpha)
             {
-                omp_unset_lock(&prune_lock);
-
-                int score = pmaximize(node->children[i], depth - 1, alpha, beta);
-
-                omp_set_lock(&prune_lock);
-
-                lowscore = std::min(lowscore, score);
-                beta = std::min(beta, lowscore);
-                if (beta <= alpha)
-                {
-                    pruned++;
-                    prnd = true;
-                }
+                nodes_pruned++;
+                break;
             }
-
-            omp_unset_lock(&prune_lock);
         }
     }
 
-    node->reduce();
+    // Parallel reduction
+    if(!node->expanded)
+    {
+        #pragma omp parallel for
+        for(int i = 0; i < node->possible_moves->size(); i++)
+        {
+            delete node->children[i];
+        }
 
-    omp_set_lock(&lock);
-    scores.emplace(node->id, lowscore);
-    omp_unset_lock(&lock);
+        delete[] node->children;
+
+        node->expanded = false;
+    }
+
+    set_cached_score(node->id, lowscore);
 
     return lowscore;
 }
 
-int PMiniMaxPlayer::pmaximize(Node *node, int depth, int alpha, int beta)
+
+bool PMiniMaxPlayer::is_id_scored(Engine::board_id id)
 {
-
-    // If this board position has already been evaluated, return the cached value
-    if (scores.find(node->id) != scores.end())
-    {
-        cached++;
-        return scores.at(node->id);
-    }
-
-    nodes_evaluated++;
-
-    if (depth == 0 || node->is_leaf())
-    {
-        // If node is terminal or max depth was reached, evaluate board configuration
-        int score = -node->board->get_score();
-        omp_set_lock(&lock);
-        scores.emplace(node->id, score);
-        omp_unset_lock(&lock);
-        return score;
-    }
-
-    node->expand();
-    int highscore = std::numeric_limits<int>::min();
-    // Search for the children node with the maximum score
-    for (int i = 0; i < node->possible_moves->size(); i++)
-    {
-        highscore = std::max(highscore, pminimize(node->children[i], depth - 1, alpha, beta));
-
-        // Prune search
-        alpha = std::max(alpha, highscore);
-        if (beta <= alpha)
-        {
-            pruned++;
-            break;
-        }
-    }
-    node->reduce();
-
-    omp_set_lock(&lock);
-    scores.emplace(node->id, highscore);
-    omp_unset_lock(&lock);
-    
-    return highscore;
+    auto it = cached_id.find(id % cache_size);
+    return it != cached_id.end() && it->second == id;
 }
 
-int PMiniMaxPlayer::pminimize(Node *node, int depth, int alpha, int beta)
+
+float PMiniMaxPlayer::get_cached_score(Engine::board_id id)
 {
+    return cached_scores.at(id % cache_size);
+}
 
-    // If this board position has already been evaluated, return the cached value
-    if (scores.find(node->id) != scores.end())
+
+void PMiniMaxPlayer::set_cached_score(Engine::board_id id, float score)
+{
+    cached_id[id % cache_size] = id;
+    cached_scores[id % cache_size] = score;
+}
+
+
+float PMiniMaxPlayer::get_score(Node* node)
+{
+    if (node->board->status == Engine::IBoard::Draw)
     {
-        cached++;
-        return scores.at(node->id);
+        // Draw
+        return 50;
+    }
+    else if ((my_turn == 1 && node->board->status == Engine::IBoard::First) || (my_turn == 0 && node->board->status == Engine::IBoard::Second))
+    {
+        // Win
+        return 100 + 1.0f / node->board->turn;
     }
 
-    nodes_evaluated++;
+    // Loss
+    return - 1.0f / node->board->turn;
+}
 
-    if (depth == 0 || node->is_leaf())
+
+float PMiniMaxPlayer::get_heuristic_score(Node *node)
+{
+    float score = 0;
+
+    #pragma omp parallel for reduction(+:score)
+    for (int i = 0; i < 100; i++)
     {
-        // If node is terminal or max depth was reached, evaluate board configuration
-        int score = node->board->get_score();
-        omp_set_lock(&lock);
-        scores.emplace(node->id, score);
-        omp_unset_lock(&lock);
-        
-        return score;
-    }
+        RandomPlayer* player = &random_players.at(omp_get_thread_num());
 
-    node->expand();
-    int lowscore = std::numeric_limits<int>::max();
-    // Search for the children node with the minimum score
-    for (int i = 0; i < node->possible_moves->size(); i++)
-    {
-        lowscore = std::min(lowscore, pmaximize(node->children[i], depth - 1, alpha, beta));
+        Engine::IBoard *test_board = node->board->get_copy();
+        Engine::play(test_board, player, player);
 
-        // Prune search
-        beta = std::min(beta, lowscore);
-        if (beta <= alpha)
+        if (test_board->status == Engine::IBoard::Draw)
         {
-            pruned++;
-            break;
+            score += 0.5f;
         }
+        else if ((my_turn == 1 && test_board->status == Engine::IBoard::First) || (my_turn == 0 && test_board->status == Engine::IBoard::Second))
+        {
+            score++;
+        }
+
+        delete test_board;
     }
-    node->reduce();
 
-    omp_set_lock(&lock);
-    scores.emplace(node->id, lowscore);
-    omp_unset_lock(&lock);
-
-    return lowscore;
+    return score;
 }

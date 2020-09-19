@@ -6,6 +6,7 @@
 #include "PScore.h"
 
 #include <unordered_map>
+#include <unordered_set>
 #include <omp.h>
 
 class PTMonteCarloPlayer : public IPlayer

@@ -23,7 +23,7 @@ void single_game(IPlayer *p1, IPlayer *p2)
     Engine::play(&board, p1, p2, true);
 }
 
-void test_games(IPlayer *p1, IPlayer *p2, int n)
+void test_games(IPlayer *p1, IPlayer *p2, int n, bool verbose)
 {
 
     int w = 0;
@@ -39,7 +39,7 @@ void test_games(IPlayer *p1, IPlayer *p2, int n)
         // Balance first turn advantage
         if (i % 2)
         {
-            Engine::play(&board, p1, p2);
+            Engine::play(&board, p1, p2, verbose);
 
             if (board.status == Engine::IBoard::First)
                 w++;
@@ -48,7 +48,7 @@ void test_games(IPlayer *p1, IPlayer *p2, int n)
         }
         else
         {
-            Engine::play(&board, p2, p1);
+            Engine::play(&board, p2, p1, verbose);
 
             if (board.status == Engine::IBoard::Second)
                 w++;
@@ -75,39 +75,27 @@ void test_games(IPlayer *p1, IPlayer *p2, int n)
 int main()
 {
     // HumanPlayer p1;
-    RandomPlayer p1;
-    // MiniMaxPlayer p1(14, true);
-    // MonteCarloPlayer p1(1000000, true);
+    // RandomPlayer p1;
+    // MiniMaxPlayer p1(12, true);
+    // MonteCarloPlayer p1(10000, true);
     // PTMonteCarloPlayer p1(100000, true);
     // PRMonteCarloPlayer p1(10000, true);
-    // PLMonteCarloPlayer p1(10000, 4, false);
+    PLMonteCarloPlayer p1(10000, true);
+    // PMiniMaxPlayer p1(8, true);
 
     // HumanPlayer p2;
     // RandomPlayer p2;
-    // MiniMaxPlayer p2(12, true);
-    // MonteCarloPlayer p2(1000, true);
+    // MiniMaxPlayer p2(8, true);
+    MonteCarloPlayer p2(10000, true);
     // PTMonteCarloPlayer p2(100000, true);
-    // PRMonteCarloPlayer p2(10000, false);
+    // PRMonteCarloPlayer p2(1000000, true);
     // PLMonteCarloPlayer p2(10000, 1, true);
-    PLMonteCarloPlayer p2(1000000, 4, true);
-    // PMiniMaxPlayer p2(14, true);
-
-    // BitBoard b = 4438047605121UL;
-
-    // std::cout << bitboard_to_string(k1) << std::endl;
-    // std::cout << bitboard_to_string(k2) << std::endl;
-    // std::cout << bitboard_to_string(k3) << std::endl;
-    // std::cout << bitboard_to_string(k4) << std::endl;
-    // std::cout << (get_flipped_bitboard(get_flipped_bitboard(b)) == b) << std::endl;
-
-
-    // std::cout << bitboard_to_string(get_flipped_bitboard(get_flipped_bitboard(b))) << std::endl;
-
-    // std::cout << b << " " << get_flipped_bitboard(get_flipped_bitboard(b)) << std::endl;
+    // PLMonteCarloPlayer p2(10000, true);
+    // PMiniMaxPlayer p2(12, true);
 
     single_game(&p1, &p2);
 
-    // test_games(&p1, &p2, 10);
+    // test_games(&p1, &p2, 10, false);
 
     return 0;
 }

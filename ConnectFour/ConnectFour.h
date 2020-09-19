@@ -43,7 +43,7 @@ namespace ConnectFour
     BitBoard mask_at(int row, int column);
 
     bool check_victory(BitBoard bitboard);
-    int get_score(BitBoard bitboard);
+    int get_heuristic_score(BitBoard bitboard);
 
     BitBoard get_flipped_bitboard(BitBoard bitboard);
 }

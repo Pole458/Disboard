@@ -38,6 +38,7 @@ namespace ConnectFour
         Engine::board_id get_id();
 
         int get_score();
+        int get_heuristic_score();
 
         BitBoard both;
         BitBoard current;

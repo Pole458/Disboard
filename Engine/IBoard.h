@@ -43,5 +43,7 @@ namespace Engine
         virtual board_id get_id() = 0;
 
         virtual int get_score() = 0;
+
+        virtual int get_heuristic_score() = 0;
     };
 } // namespace Engine

@@ -14,11 +14,12 @@ public:
     float get_played();
     float get_winrate();
 
-    void increase(float score, float played);
+    void increase(float wins, float played);
+    void increase(PScore score);
 
 private:
     omp_lock_t lock;
 
-    float played;
-    float score;
+    float wins;
+    int played;
 };

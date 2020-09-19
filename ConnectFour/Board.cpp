@@ -125,7 +125,6 @@ namespace ConnectFour
 
     int Board::get_score()
     {
-
         BitBoard bitboard = both & (~current);
 
         // Check if I won
@@ -181,18 +180,21 @@ namespace ConnectFour
         if(count_bits(mask) > 0)
             return -100000 + turn / 2;
 
-        // Check if draw
-        if(turn == 42) return 0;
+        return 0;
+    }
+
+    int Board::get_heuristic_score()
+    {
 
         // Return an heuristic score
 
         int score = 0;
 
         // Check my 3
-        bitboard = both & (~current);
+        BitBoard bitboard = both & (~current);
 
         // Horizontal -
-        mask = bitboard & (bitboard >> (HEIGHT));
+        BitBoard mask = bitboard & (bitboard >> (HEIGHT));
         mask = mask & (mask >> (1 * (HEIGHT)));
         score += count_bits(mask) * 100;
 
@@ -210,25 +212,6 @@ namespace ConnectFour
         mask = bitboard & (bitboard >> 1);
         mask = mask & (mask >> 1);
         score += count_bits(mask) * 100;
-
-        // Check my 2
-
-        // Horizontal -
-        mask = bitboard & (bitboard >> (HEIGHT));
-        score += count_bits(mask);
-
-        // Diagonal 
-        mask = bitboard & (bitboard >> (HEIGHT - 1));
-        score += count_bits(mask);
-
-        // Diagonal /
-        mask = bitboard & (bitboard >> (HEIGHT + 1));
-        score += count_bits(mask);
-
-        // Vertical |
-        mask = bitboard & (bitboard >> 1);
-        score += count_bits(mask);
-
 
         // Check enemy 3
         bitboard = both & current;
@@ -236,6 +219,7 @@ namespace ConnectFour
         // Horizontal -
         mask = bitboard & (bitboard >> (HEIGHT));
         mask = mask & (mask >> (1 * (HEIGHT)));
+
         score -= count_bits(mask) * 100;
 
         // Diagonal 
@@ -253,7 +237,27 @@ namespace ConnectFour
         mask = mask & (mask >> 1);
         score -= count_bits(mask) * 100;
 
+        // Check my 2
+        bitboard = both & (~current);
+
+        // Horizontal -
+        mask = bitboard & (bitboard >> (HEIGHT));
+        score += count_bits(mask);
+
+        // Diagonal 
+        mask = bitboard & (bitboard >> (HEIGHT - 1));
+        score += count_bits(mask);
+
+        // Diagonal /
+        mask = bitboard & (bitboard >> (HEIGHT + 1));
+        score += count_bits(mask);
+
+        // Vertical |
+        mask = bitboard & (bitboard >> 1);
+        score += count_bits(mask);
+
         // Check enemy 2
+        bitboard = both & current;
 
         // Horizontal -
         mask = bitboard & (bitboard >> (HEIGHT));
