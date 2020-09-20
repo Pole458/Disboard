@@ -27,9 +27,9 @@ Engine::IMove *PMiniMaxPlayer::choose_move(Engine::IBoard *board)
     nodes_pruned = 0;
     cache_hits = 0;
 
-    int alpha = std::numeric_limits<int>::lowest();
-    int beta = std::numeric_limits<int>::max();
-    int highscore = std::numeric_limits<int>::lowest();
+    float alpha = std::numeric_limits<float>::lowest();
+    float beta = std::numeric_limits<float>::max();
+    float highscore = std::numeric_limits<float>::lowest();
 
     Node root(board->get_copy());
     root.expand();
@@ -37,22 +37,53 @@ Engine::IMove *PMiniMaxPlayer::choose_move(Engine::IBoard *board)
 
     std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
 
+    // Move ordering
+    int indexes[root.possible_moves->size()] = {};
+    float heuristic_scores[root.possible_moves->size()] = {};
+    for(int i = 0, size = 0; size < root.possible_moves->size(); i++)
+    {
+        if(!is_id_cached(root.children[i]->id))
+        {
+            int pos = size;
+            float fast_score = get_heuristic_score(root.children[i], 10);
+            for(; pos > 0 && heuristic_scores[pos - 1] < fast_score; pos--)
+            {   
+                indexes[pos] = indexes[pos - 1];
+                heuristic_scores[pos] = heuristic_scores[pos - 1];
+            }
+            indexes[pos] = i;
+            heuristic_scores[pos] = fast_score;
+            size++;
+        }
+    }
+
     // Search for the children node with the maximum score
     for (int i = 0; i < root.possible_moves->size(); i++)
     {
-        Node* child = root.children[i];
-        int score = minimize(child, max_depth - 1, alpha, beta);
+        Node* child = root.children[indexes[i]];
+        float score = minimize(child, max_depth - 1, alpha, beta);
+
+        if (verbose)
+        {
+            if(score > 1)
+            {
+                std::cout << child->move->to_string() << " win in " << (std::round(1 / (score - 1)) + 1 - board->turn) << " turns" << std::endl;
+            }
+            else if(score < 0)
+            {
+                std::cout << child->move->to_string() << " loss in " << (std::round(-1 / score) + 1 - board->turn) << " turns" << std::endl;
+            }
+            else
+            {
+                std::cout << child->move->to_string() << " winrate: " << score * 100 << "%" << std::endl;
+            }
+        }
 
         if (score > highscore)
         {
             highscore = score;
             selected_move = child->move;
             alpha = std::max(alpha, highscore);
-        }
-
-        if (verbose)
-        {
-            std::cout << child->move->to_string() << " score: " << score << std::endl;
         }
     }
 
@@ -80,7 +111,7 @@ float PMiniMaxPlayer::maximize(Node *node, int depth, float alpha, float beta)
 {
 
     // If this board position has already been evaluated, return the cached value
-    if (is_id_scored(node->id))
+    if (is_id_cached(node->id))
     {
         cache_hits++;
         return get_cached_score(node->id);
@@ -99,7 +130,7 @@ float PMiniMaxPlayer::maximize(Node *node, int depth, float alpha, float beta)
     if (depth == 0)
     {
         leafs_reached++;
-        float score = get_heuristic_score(node); 
+        float score = get_heuristic_score(node, 100); 
         set_cached_score(node->id, score);
         return score;
     }
@@ -122,28 +153,58 @@ float PMiniMaxPlayer::maximize(Node *node, int depth, float alpha, float beta)
 
     float highscore = std::numeric_limits<float>::lowest();
 
+    int nodes_to_explore = 0;
+    int ch = 0;
+
     // Search first for cached results in order to optimize pruning
-    #pragma omp parallel for reduction(max:highscore)
+    #pragma omp parallel for reduction(max:highscore) reduction(+:nodes_to_explore) reduction(+:ch)
     for(int i = 0; i < node->possible_moves->size(); i++)
     {
-        if(is_id_scored(node->children[i]->id))
+        if(is_id_cached(node->children[i]->id))
         {
             highscore = std::max(highscore, get_cached_score(node->children[i]->id));
+            ch++;
+        }
+        else
+        {
+            nodes_to_explore++;
         }
     }
     
+    cache_hits += ch;
+
     // Can we prune?
     alpha = std::max(alpha, highscore);
     if (beta <= alpha)
     {
-        nodes_pruned++;      
+        nodes_pruned++;
     }
     else
     {
-        // Search in other nodes not yet explored
-        for (int i = 0; i < node->possible_moves->size(); i++)
+        // Move ordering and cache check for pruning
+        int indexes[nodes_to_explore] = {};
+        float heuristic_scores[nodes_to_explore] = {};
+        for(int i = 0, size = 0; size < nodes_to_explore; i++)
         {
-            highscore = std::max(highscore, minimize(node->children[i], depth - 1, alpha, beta));
+            if(!is_id_cached(node->children[i]->id))
+            {
+                int pos = size;
+                float fast_score = get_heuristic_score(node->children[i], 10);
+                for(; pos > 0 && heuristic_scores[pos - 1] < fast_score; pos--)
+                {   
+                    indexes[pos] = indexes[pos - 1];
+                    heuristic_scores[pos] = heuristic_scores[pos - 1];
+                }
+                indexes[pos] = i;
+                heuristic_scores[pos] = fast_score;
+                size++;
+            }
+        }
+
+        // Search in other nodes not yet explored
+        for (int i = 0; i < nodes_to_explore; i++)
+        {
+            highscore = std::max(highscore, minimize(node->children[indexes[i]], depth - 1, alpha, beta));
 
             // Prune search
             alpha = std::max(alpha, highscore);
@@ -178,7 +239,7 @@ float PMiniMaxPlayer::minimize(Node *node, int depth, float alpha, float beta)
 {
 
     // If this board position has already been evaluated, return the cached value
-    if (is_id_scored(node->id))
+    if (is_id_cached(node->id))
     {
         cache_hits++;
         return get_cached_score(node->id);
@@ -197,7 +258,7 @@ float PMiniMaxPlayer::minimize(Node *node, int depth, float alpha, float beta)
     if (depth == 0)
     {
         leafs_reached++;
-        float score = get_heuristic_score(node); 
+        float score = get_heuristic_score(node, 100); 
         set_cached_score(node->id, score);
         return score;
     }
@@ -220,16 +281,26 @@ float PMiniMaxPlayer::minimize(Node *node, int depth, float alpha, float beta)
 
     float lowscore = std::numeric_limits<float>::max();
 
+    int nodes_to_explore = 0;
+    int ch = 0;
+
     // Search first for cached results in order to optimize pruning
-    #pragma omp parallel for reduction(min:lowscore)
+    #pragma omp parallel for reduction(min:lowscore) reduction(+:nodes_to_explore) reduction(+:ch)
     for(int i = 0; i < node->possible_moves->size(); i++)
     {
-        if(is_id_scored(node->children[i]->id))
+        if(is_id_cached(node->children[i]->id))
         {
-            lowscore = std::max(lowscore, get_cached_score(node->children[i]->id));
+            lowscore = std::min(lowscore, get_cached_score(node->children[i]->id));
+            ch++;
+        }
+        else
+        {
+            nodes_to_explore++;
         }
     }
    
+    cache_hits += ch;
+
     // Can we prune?
     beta = std::min(beta, lowscore);
     if (beta <= alpha)
@@ -238,10 +309,30 @@ float PMiniMaxPlayer::minimize(Node *node, int depth, float alpha, float beta)
     }
     else
     {
-        // Search for the children node with the minimum score
-        for (int i = 0; i < node->possible_moves->size(); i++)
+        // Move ordering and cache check for pruning
+        int indexes[nodes_to_explore] = {};
+        float heuristic_scores[nodes_to_explore] = {};
+        for(int i = 0, size = 0; size < nodes_to_explore; i++)
         {
-            lowscore = std::min(lowscore, maximize(node->children[i], depth - 1, alpha, beta));
+            if(!is_id_cached(node->children[i]->id))
+            {
+                int pos = size;
+                float fast_score = get_heuristic_score(node->children[i], 10);
+                for(; pos > 0 && heuristic_scores[pos - 1] > fast_score; pos--)
+                {   
+                    indexes[pos] = indexes[pos - 1];
+                    heuristic_scores[pos] = heuristic_scores[pos - 1];
+                }
+                indexes[pos] = i;
+                heuristic_scores[pos] = fast_score;
+                size++;
+            }
+        }
+
+        // Search for the children node with the minimum score
+        for (int i = 0; i < nodes_to_explore; i++)
+        {
+            lowscore = std::min(lowscore, maximize(node->children[indexes[i]], depth - 1, alpha, beta));
 
             // Prune search
             beta = std::min(beta, lowscore);
@@ -272,7 +363,7 @@ float PMiniMaxPlayer::minimize(Node *node, int depth, float alpha, float beta)
     return lowscore;
 }
 
-bool PMiniMaxPlayer::is_id_scored(Engine::board_id id)
+bool PMiniMaxPlayer::is_id_cached(Engine::board_id id)
 {
     auto it = cached_id.find(id % cache_size);
     return it != cached_id.end() && it->second == id;
@@ -294,24 +385,24 @@ float PMiniMaxPlayer::get_score(Node* node)
     if (node->board->status == Engine::IBoard::Draw)
     {
         // Draw
-        return 50;
+        return 0.5f;
     }
     else if ((my_turn == 1 && node->board->status == Engine::IBoard::First) || (my_turn == 0 && node->board->status == Engine::IBoard::Second))
     {
         // Win
-        return 100 + 1.0f / node->board->turn;
+        return 1 + 1.0f / node->board->turn;
     }
 
     // Loss
     return - 1.0f / node->board->turn;
 }
 
-float PMiniMaxPlayer::get_heuristic_score(Node *node)
+float PMiniMaxPlayer::get_heuristic_score(Node *node, int rollouts)
 {
     float score = 0;
 
     #pragma omp parallel for reduction(+:score)
-    for (int i = 0; i < 100; i++)
+    for (int i = 0; i < rollouts; i++)
     {
         RandomPlayer* player = &random_players.at(omp_get_thread_num());
 
@@ -330,5 +421,5 @@ float PMiniMaxPlayer::get_heuristic_score(Node *node)
         delete test_board;
     }
 
-    return score;
+    return score / rollouts;
 }

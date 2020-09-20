@@ -27,7 +27,7 @@ private:
 
     // Cache
     int cache_size;
-    bool is_id_scored(Engine::board_id id);
+    bool is_id_cached(Engine::board_id id);
     float get_cached_score(Engine::board_id id);
     void set_cached_score(Engine::board_id id, float score);
    

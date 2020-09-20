@@ -9,6 +9,7 @@
 #include "Player/PRMonteCarloPlayer.h"
 #include "Player/PLMonteCarloPlayer.h"
 #include "Player/PMiniMaxPlayer.h"
+#include "Player/PYBWMiniMaxPlayer.h"
 
 #include <iostream>
 #include <chrono>
@@ -76,26 +77,27 @@ int main()
 {
     // HumanPlayer p1;
     // RandomPlayer p1;
-    MiniMaxPlayer p1(10, true);
-    // MonteCarloPlayer p1(10000, true);
+    // MiniMaxPlayer p1(6, false);
+    MonteCarloPlayer p1(10000000, true);
     // PTMonteCarloPlayer p1(100000, true);
     // PRMonteCarloPlayer p1(10000, true);
     // PLMonteCarloPlayer p1(10000, true);
-    // PMiniMaxPlayer p1(6, true);
+    // PMiniMaxPlayer p1(6, false);
+    // PYBWMiniMaxPlayer p1(8, true);
 
     // HumanPlayer p2;
     // RandomPlayer p2;
-    MiniMaxPlayer p2(4, true);
+    // MiniMaxPlayer p2(8, true);
     // MonteCarloPlayer p2(10000, true);
     // PTMonteCarloPlayer p2(100000, true);
     // PRMonteCarloPlayer p2(1000000, true);
     // PLMonteCarloPlayer p2(10000, 1, true);
     // PLMonteCarloPlayer p2(10000, true);
-    // PMiniMaxPlayer p2(12, true);
+    PMiniMaxPlayer p2(8, true);
 
     single_game(&p1, &p2);
 
-    // test_games(&p1, &p2, 10, false);
+    // test_games(&p1, &p2, 1, false);
 
     return 0;
 }

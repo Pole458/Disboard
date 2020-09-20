@@ -101,7 +101,7 @@ float MiniMaxPlayer::maximize(Node *node, int depth, float alpha, float beta)
 {
 
     // If this board position has already been evaluated, return the cached value
-    if (is_id_scored(node->id))
+    if (is_id_cached(node->id))
     {
         cache_hits++;
         return get_cached_score(node->id);
@@ -137,7 +137,7 @@ float MiniMaxPlayer::maximize(Node *node, int depth, float alpha, float beta)
     int nodes_to_check = 0;
     for(int i = 0; i < node->possible_moves->size(); i++)
     {
-        if(is_id_scored(node->children[i]->id))
+        if(is_id_cached(node->children[i]->id))
         {
             cache_hits++;
             highscore = std::max(highscore, get_cached_score(node->children[i]->id));
@@ -191,7 +191,7 @@ float MiniMaxPlayer::minimize(Node *node, int depth, float alpha, float beta)
 {
 
     // If this board position has already been evaluated, return the cached value
-    if (is_id_scored(node->id))
+    if (is_id_cached(node->id))
     {
         cache_hits++;
         return get_cached_score(node->id);
@@ -227,7 +227,7 @@ float MiniMaxPlayer::minimize(Node *node, int depth, float alpha, float beta)
     int nodes_to_check = 0;
     for(int i = 0; i < node->possible_moves->size(); i++)
     {
-        if(is_id_scored(node->children[i]->id))
+        if(is_id_cached(node->children[i]->id))
         {
             cache_hits++;
             lowscore = std::min(lowscore, get_cached_score(node->children[i]->id));
@@ -245,7 +245,7 @@ float MiniMaxPlayer::minimize(Node *node, int depth, float alpha, float beta)
         {
             int pos = nodes_to_check;
             float fast_score = get_heuristic_score(node->children[i], 10);
-            for(; pos > 0 && heuristic_scores[pos - 1] < fast_score; pos--)
+            for(; pos > 0 && heuristic_scores[pos - 1] > fast_score; pos--)
             {   
                 indexes[pos] = indexes[pos - 1];
                 heuristic_scores[pos] = heuristic_scores[pos - 1];
@@ -276,7 +276,7 @@ float MiniMaxPlayer::minimize(Node *node, int depth, float alpha, float beta)
     return lowscore;
 }
 
-bool MiniMaxPlayer::is_id_scored(Engine::board_id id)
+bool MiniMaxPlayer::is_id_cached(Engine::board_id id)
 {
     auto it = cached_id.find(id % cache_size);
     return it != cached_id.end() && it->second == id;
