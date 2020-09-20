@@ -12,18 +12,17 @@ class MonteCarloPlayer : public IPlayer
 {
 
 public:
-    MonteCarloPlayer(int rollouts, bool verbose = false);
+    MonteCarloPlayer(float time_to_think, bool verbose = false);
     Engine::IMove *choose_move(Engine::IBoard *board);
 
 private:
     // Random generator
     pcg32 rng;
 
-    // Internal random player used to for random rollout
+    // Internal random player used to for random rollouts
     RandomPlayer player;
 
-    // Number to rollout needed to choose a move
-    int rollouts;
+    float thinking_time;
 
     bool verbose;
 };

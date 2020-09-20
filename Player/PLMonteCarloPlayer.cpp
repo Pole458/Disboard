@@ -6,9 +6,9 @@
 #include <unordered_map>
 #include <unordered_set>
 
-PLMonteCarloPlayer::PLMonteCarloPlayer(int rollouts, bool verbose)
+PLMonteCarloPlayer::PLMonteCarloPlayer(float thinking_time, bool verbose)
 {
-    this->rollouts = rollouts;
+    this->thinking_time = thinking_time;
     this->verbose = verbose;
 }
 
@@ -37,7 +37,7 @@ Engine::IMove *PLMonteCarloPlayer::choose_move(Engine::IBoard *board)
 
     Node *node;
 
-    while (scores[root.id].played < rollouts)
+    while(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - begin).count() < thinking_time)
     {
       
         node = &root;

@@ -6,9 +6,9 @@
 
 #include <unordered_set>
 
-PRMonteCarloPlayer::PRMonteCarloPlayer(int rollouts, bool verbose)
+PRMonteCarloPlayer::PRMonteCarloPlayer(float thinking_time, bool verbose)
 {
-    this->rollouts = rollouts;
+    this->thinking_time = thinking_time;
     this->verbose = verbose;
 }
 
@@ -36,6 +36,9 @@ Engine::IMove *PRMonteCarloPlayer::choose_move(Engine::IBoard *board)
     #pragma omp parallel reduction(max:max_depth_reached) reduction(+:iterations)
     {
 
+        // Random generator
+        pcg32 rng;
+
         Node root = Node(board->get_copy());
 
         std::unordered_map<Engine::board_id, Score> scores;
@@ -46,7 +49,7 @@ Engine::IMove *PRMonteCarloPlayer::choose_move(Engine::IBoard *board)
         // Hash map used to group nodes with the same id
         std::unordered_map<Engine::board_id, std::unordered_set<Node*>> nodes;
 
-        while(scores[root.id].played < rollouts / omp_get_num_threads())
+        while(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - begin).count() < thinking_time)
         {
             Node *node = &root;
 
@@ -112,7 +115,7 @@ Engine::IMove *PRMonteCarloPlayer::choose_move(Engine::IBoard *board)
                 }
 
                 // Pick one children node
-                node = node->children[0];
+                node = node->children[rng(node->possible_moves->size())];
 
                 // 3) Rollout
                 // Simulate a random game from the node's board configuration

@@ -5,9 +5,9 @@
 #include <unordered_map>
 #include <unordered_set>
 
-MonteCarloPlayer::MonteCarloPlayer(int rollouts, bool verbose)
+MonteCarloPlayer::MonteCarloPlayer(float thinking_time, bool verbose)
 {
-    this->rollouts = rollouts;
+    this->thinking_time = thinking_time;
     this->verbose = verbose;
 
     // Seed with a real random value, if available
@@ -40,7 +40,7 @@ Engine::IMove *MonteCarloPlayer::choose_move(Engine::IBoard *board)
 
     std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
 
-    while (scores[root.id].played < rollouts)
+    while(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - begin).count() < thinking_time)
     {
         Node *node = &root;
 

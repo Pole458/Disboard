@@ -13,7 +13,7 @@ class PLMonteCarloPlayer : public IPlayer
 {
 
 public:
-    PLMonteCarloPlayer(int rollouts, bool verbose = false);
+    PLMonteCarloPlayer(float thinking_time, bool verbose = false);
     Engine::IMove *choose_move(Engine::IBoard *board);
 
 private:
@@ -21,8 +21,7 @@ private:
     // Internal random player used to for random rollout
     RandomPlayer player;
 
-    // Number to rollout needed to choose a move
-    int rollouts;
+    float thinking_time;
 
     bool verbose;
 };

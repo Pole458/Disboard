@@ -77,23 +77,27 @@ int main()
 {
     // HumanPlayer p1;
     // RandomPlayer p1;
+
+    MonteCarloPlayer p1(200, true);
+    // PRMonteCarloPlayer p1(200, true);
+    // PLMonteCarloPlayer p1(200, true);
+
     // MiniMaxPlayer p1(6, false);
-    MonteCarloPlayer p1(10000000, true);
-    // PTMonteCarloPlayer p1(100000, true);
-    // PRMonteCarloPlayer p1(10000, true);
-    // PLMonteCarloPlayer p1(10000, true);
     // PMiniMaxPlayer p1(6, false);
-    // PYBWMiniMaxPlayer p1(8, true);
+    // PYBWMiniMaxPlayer p1(6, true);
+
+    
 
     // HumanPlayer p2;
     // RandomPlayer p2;
-    // MiniMaxPlayer p2(8, true);
-    // MonteCarloPlayer p2(10000, true);
-    // PTMonteCarloPlayer p2(100000, true);
-    // PRMonteCarloPlayer p2(1000000, true);
-    // PLMonteCarloPlayer p2(10000, 1, true);
-    // PLMonteCarloPlayer p2(10000, true);
-    PMiniMaxPlayer p2(8, true);
+
+    MonteCarloPlayer p2(200, true);
+    // PRMonteCarloPlayer p2(200, true);
+    // PLMonteCarloPlayer p2(500, true);
+
+    // MiniMaxPlayer p2(6, true);
+    // PMiniMaxPlayer p2(6, true)
+    // PYBWMiniMaxPlayer p2(6, true);;
 
     single_game(&p1, &p2);
 
