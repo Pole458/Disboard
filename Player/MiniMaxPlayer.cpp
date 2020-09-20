@@ -32,14 +32,43 @@ Engine::IMove *MiniMaxPlayer::choose_move(Engine::IBoard *board)
 
     std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
 
+    // Move ordering
+    int indexes[root.possible_moves->size()] = {};
+    float heuristic_scores[root.possible_moves->size()] = {};
+    for(int i = 0; i < root.possible_moves->size(); i++)
+    {
+        int pos = i;
+        float fast_score = get_heuristic_score(root.children[i], 10);
+        for(; pos > 0 && heuristic_scores[pos - 1] < fast_score; pos--)
+        {   
+            indexes[pos] = indexes[pos - 1];
+            heuristic_scores[pos] = heuristic_scores[pos - 1];
+        }
+        indexes[pos] = i;
+        heuristic_scores[pos] = fast_score;
+    }
+
     // Search for the children node with the maximum score
     for (int i = 0; i < root.possible_moves->size(); i++)
     {
-        Node* child = root.children[i];
+        Node* child = root.children[indexes[i]];
         float score = minimize(child, max_depth - 1, alpha, beta);
 
         if (verbose)
-            std::cout << child->move->to_string() << " score: " << score << std::endl;
+        {
+            if(score > 1)
+            {
+                std::cout << child->move->to_string() << " win in " << (std::round(1 / (score - 1)) + 1 - board->turn) << " turns" << std::endl;
+            }
+            else if(score < 0)
+            {
+                std::cout << child->move->to_string() << " loss in " << (std::round(-1 / score) + 1 - board->turn) << " turns" << std::endl;
+            }
+            else
+            {
+                std::cout << child->move->to_string() << " winrate: " << score * 100 << "%" << std::endl;
+            }
+        }
 
         if (score > highscore)
         {
@@ -91,42 +120,56 @@ float MiniMaxPlayer::maximize(Node *node, int depth, float alpha, float beta)
     if (depth == 0)
     {
         leafs_reached++;
-        float score = get_heuristic_score(node); 
+        float score = get_heuristic_score(node, 100); 
         set_cached_score(node->id, score);
         return score;
     }
 
     nodes_evaluated++;
 
-    node->expand();
-
     float highscore = std::numeric_limits<float>::lowest();
 
-    // Search first for cached results in order to optimize pruning
+    node->expand();
+
+    // Move ordering and cache check for pruning
+    int indexes[node->possible_moves->size()] = {};
+    float heuristic_scores[node->possible_moves->size()] = {};
+    int nodes_to_check = 0;
     for(int i = 0; i < node->possible_moves->size(); i++)
     {
         if(is_id_scored(node->children[i]->id))
         {
+            cache_hits++;
             highscore = std::max(highscore, get_cached_score(node->children[i]->id));
             // Prune search
             alpha = std::max(alpha, highscore);
             if (beta <= alpha)
             {
                 nodes_pruned++;
-                
                 node->reduce();
-
                 set_cached_score(node->id, highscore);
-
                 return highscore;
             }
+        }
+        else
+        {
+            int pos = nodes_to_check;
+            float fast_score = get_heuristic_score(node->children[i], 10);
+            for(; pos > 0 && heuristic_scores[pos - 1] < fast_score; pos--)
+            {   
+                indexes[pos] = indexes[pos - 1];
+                heuristic_scores[pos] = heuristic_scores[pos - 1];
+            }
+            indexes[pos] = i;
+            heuristic_scores[pos] = fast_score;
+            nodes_to_check++;
         }
     }
     
     // Search in other nodes not yet explored
-    for (int i = 0; i < node->possible_moves->size(); i++)
+    for (int i = 0; i < nodes_to_check; i++)
     {
-        highscore = std::max(highscore, minimize(node->children[i], depth - 1, alpha, beta));
+        highscore = std::max(highscore, minimize(node->children[indexes[i]], depth - 1, alpha, beta));
 
         // Prune search
         alpha = std::max(alpha, highscore);
@@ -167,42 +210,56 @@ float MiniMaxPlayer::minimize(Node *node, int depth, float alpha, float beta)
     if (depth == 0)
     {
         leafs_reached++;
-        float score = get_heuristic_score(node); 
+        float score = get_heuristic_score(node, 100); 
         set_cached_score(node->id, score);
         return score;
     }
 
     nodes_evaluated++;
 
-    node->expand();
-
     float lowscore = std::numeric_limits<float>::max();
 
-    // Search first for cached results in order to optimize pruning
+    node->expand();
+
+    // Move ordering and cache check for pruning
+    int indexes[node->possible_moves->size()] = {};
+    float heuristic_scores[node->possible_moves->size()] = {};
+    int nodes_to_check = 0;
     for(int i = 0; i < node->possible_moves->size(); i++)
     {
         if(is_id_scored(node->children[i]->id))
         {
-            lowscore = std::max(lowscore, get_cached_score(node->children[i]->id));
+            cache_hits++;
+            lowscore = std::min(lowscore, get_cached_score(node->children[i]->id));
             // Prune search
             beta = std::min(beta, lowscore);
             if (beta <= alpha)
             {
                 nodes_pruned++;
-                
                 node->reduce();
-
                 set_cached_score(node->id, lowscore);
-
                 return lowscore;
             }
+        }
+        else
+        {
+            int pos = nodes_to_check;
+            float fast_score = get_heuristic_score(node->children[i], 10);
+            for(; pos > 0 && heuristic_scores[pos - 1] < fast_score; pos--)
+            {   
+                indexes[pos] = indexes[pos - 1];
+                heuristic_scores[pos] = heuristic_scores[pos - 1];
+            }
+            indexes[pos] = i;
+            heuristic_scores[pos] = fast_score;
+            nodes_to_check++;
         }
     }
    
     // Search for the children node with the minimum score
-    for (int i = 0; i < node->possible_moves->size(); i++)
+    for (int i = 0; i < nodes_to_check; i++)
     {
-        lowscore = std::min(lowscore, maximize(node->children[i], depth - 1, alpha, beta));
+        lowscore = std::min(lowscore, maximize(node->children[indexes[i]], depth - 1, alpha, beta));
 
         // Prune search
         beta = std::min(beta, lowscore);
@@ -241,23 +298,23 @@ float MiniMaxPlayer::get_score(Node* node)
     if (node->board->status == Engine::IBoard::Draw)
     {
         // Draw
-        return 50;
+        return 0.5f;
     }
     else if ((my_turn == 1 && node->board->status == Engine::IBoard::First) || (my_turn == 0 && node->board->status == Engine::IBoard::Second))
     {
         // Win
-        return 100 + 1.0f / node->board->turn;
+        return 1 + 1.0f / node->board->turn;
     }
 
     // Loss
     return - 1.0f / node->board->turn;
 }
 
-float MiniMaxPlayer::get_heuristic_score(Node *node)
+float MiniMaxPlayer::get_heuristic_score(Node *node, int rollouts)
 {
     float score = 0;;
 
-    for (int i = 0; i < 100; i++)
+    for (int i = 0; i < rollouts; i++)
     {
         Engine::IBoard *test_board = node->board->get_copy();
         Engine::play(test_board, &random_player, &random_player);
@@ -274,5 +331,5 @@ float MiniMaxPlayer::get_heuristic_score(Node *node)
         delete test_board;
     }
 
-    return score;
+    return score / rollouts;
 }

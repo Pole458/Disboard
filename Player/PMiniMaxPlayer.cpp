@@ -272,26 +272,22 @@ float PMiniMaxPlayer::minimize(Node *node, int depth, float alpha, float beta)
     return lowscore;
 }
 
-
 bool PMiniMaxPlayer::is_id_scored(Engine::board_id id)
 {
     auto it = cached_id.find(id % cache_size);
     return it != cached_id.end() && it->second == id;
 }
 
-
 float PMiniMaxPlayer::get_cached_score(Engine::board_id id)
 {
     return cached_scores.at(id % cache_size);
 }
-
 
 void PMiniMaxPlayer::set_cached_score(Engine::board_id id, float score)
 {
     cached_id[id % cache_size] = id;
     cached_scores[id % cache_size] = score;
 }
-
 
 float PMiniMaxPlayer::get_score(Node* node)
 {
@@ -309,7 +305,6 @@ float PMiniMaxPlayer::get_score(Node* node)
     // Loss
     return - 1.0f / node->board->turn;
 }
-
 
 float PMiniMaxPlayer::get_heuristic_score(Node *node)
 {

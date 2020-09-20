@@ -30,7 +30,7 @@ Engine::IMove *PLMonteCarloPlayer::choose_move(Engine::IBoard *board)
     std::unordered_map<Engine::board_id, Score> scores;
 
     // Hash map used to group nodes with the same id
-    std::unordered_map<Engine::board_id, std::unordered_set<Node *>> nodes;
+    std::unordered_map<Engine::board_id, std::unordered_set<Node*>> nodes;
 
     // Hash map used for backpropagation
     std::unordered_map<Engine::board_id, Score> back_prop;
@@ -180,14 +180,14 @@ Engine::IMove *PLMonteCarloPlayer::choose_move(Engine::IBoard *board)
                 {
                     Node *node = *it;
 
-                    // Add parent id to the ones to increase
+                    // Add parent's id to the ones to increase
                     if (node->parent != NULL)
                     {
                         back_prop[node->parent->id].increase(score);
                     }
                 }
             }
-        }        
+        }
 
         iterations++;
     }

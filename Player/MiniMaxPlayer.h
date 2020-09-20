@@ -23,7 +23,7 @@ private:
     
     // Scoring system
     float get_score(Node* node);
-    float get_heuristic_score(Node *node);
+    float get_heuristic_score(Node *node, int rollouts);
 
     // Cache
     int cache_size;
