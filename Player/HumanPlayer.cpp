@@ -7,11 +7,6 @@
 
 HumanPlayer::HumanPlayer()
 {
-
-}
-
-HumanPlayer::~HumanPlayer()
-{
 }
 
 bool tryParse(std::string& input, int& output) {
@@ -26,17 +21,11 @@ bool tryParse(std::string& input, int& output) {
 Engine::IMove* HumanPlayer::choose_move(Engine::IBoard* board)
 {
 
-
     Engine::IPossibleMoves* possible_moves = board->get_possible_moves();
 
+    std::cout << "Select a move:" << std::endl;
+ 
     std::cout << possible_moves->to_string() << std::endl;
-
-    // for(int i = 0; i < possible_moves->size(); i++)
-    // {
-    //     std::cout << i << "." << possible_moves->move_at(i)->to_string() << "  ";
-    // }
-
-    // std::cout << std::endl;
 
     std::string input;
     int x = -1;

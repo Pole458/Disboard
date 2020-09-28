@@ -16,6 +16,5 @@ class RandomPlayer : public IPlayer
 
 		Engine::IMove* choose_move(Engine::IBoard* board);
 
-	private:
 		pcg32 rng;
 };

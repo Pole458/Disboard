@@ -2,11 +2,13 @@
 
 #include "RandomPlayer.h"
 #include "../Engine/Engine.h"
-#include "../Pcg/pcg_random.hpp"
+#include "../Engine/IPossibleMoves.h"
 #include "Node.h"
 #include "Score.h"
 
 #include <unordered_map>
+#include <unordered_set>
+#include <chrono>
 
 class MonteCarloPlayer : public IPlayer
 {
@@ -15,14 +17,11 @@ public:
     MonteCarloPlayer(float time_to_think, bool verbose = false);
     Engine::IMove *choose_move(Engine::IBoard *board);
 
-private:
-    // Random generator
-    pcg32 rng;
+    // Analytics
+    int max_depth_reached;
+    int iterations;
 
-    // Internal random player used to for random rollouts
-    RandomPlayer player;
-
+protected:
     float thinking_time;
-
     bool verbose;
 };

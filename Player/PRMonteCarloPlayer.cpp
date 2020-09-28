@@ -1,15 +1,7 @@
 #include "PRMonteCarloPlayer.h"
-#include "../Engine/IPossibleMoves.h"
 
-#include <string>
-#include <chrono>
-
-#include <unordered_set>
-
-PRMonteCarloPlayer::PRMonteCarloPlayer(float thinking_time, bool verbose)
+PRMonteCarloPlayer::PRMonteCarloPlayer(float thinking_time, bool verbose) : MonteCarloPlayer(thinking_time, verbose)
 {
-    this->thinking_time = thinking_time;
-    this->verbose = verbose;
 }
 
 Engine::IMove *PRMonteCarloPlayer::choose_move(Engine::IBoard *board)
@@ -17,9 +9,9 @@ Engine::IMove *PRMonteCarloPlayer::choose_move(Engine::IBoard *board)
 
     int my_turn = board->turn % 2;
 
-    int max_depth_reached = 0;
-
-    int iterations = 0;
+    // Reset analyitics
+    max_depth_reached = 0;
+    iterations = 0;
 
     omp_lock_t debug;
     omp_init_lock(&debug);
@@ -36,8 +28,8 @@ Engine::IMove *PRMonteCarloPlayer::choose_move(Engine::IBoard *board)
     #pragma omp parallel reduction(max:max_depth_reached) reduction(+:iterations)
     {
 
-        // Random generator
-        pcg32 rng;
+        // Internal random player used to for random rollout
+        RandomPlayer random_player;
 
         Node root = Node(board->get_copy());
 
@@ -115,13 +107,13 @@ Engine::IMove *PRMonteCarloPlayer::choose_move(Engine::IBoard *board)
                 }
 
                 // Pick one children node
-                node = node->children[rng(node->possible_moves->size())];
+                node = node->children[random_player.rng(node->possible_moves->size())];
 
                 // 3) Rollout
                 // Simulate a random game from the node's board configuration
 
                 Engine::IBoard *test_board = node->board->get_copy();
-                Engine::play(test_board, &player, &player);
+                Engine::play(test_board, &random_player, &random_player);
 
                 // The board is now in a terminal state, get the outcome
                 if (test_board->status == Engine::IBoard::Draw)
@@ -202,10 +194,10 @@ Engine::IMove *PRMonteCarloPlayer::choose_move(Engine::IBoard *board)
         // Reduce the scores
         #pragma omp critical
         {
-            global_scores[root.id].increase(scores[root.id].wins, scores[root.id].played);
+            global_scores[root.id].increase(scores[root.id]);
             for (int i = 0; i < root.possible_moves->size(); i++)
             {
-                global_scores[root.children[i]->id].increase(scores[root.children[i]->id].wins, scores[root.children[i]->id].played);
+                global_scores[root.children[i]->id].increase(scores[root.children[i]->id]);
             }
         }
     }

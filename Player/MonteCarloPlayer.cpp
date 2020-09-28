@@ -1,20 +1,9 @@
 #include "MonteCarloPlayer.h"
-#include "../Engine/IPossibleMoves.h"
-
-#include <chrono>
-#include <unordered_map>
-#include <unordered_set>
 
 MonteCarloPlayer::MonteCarloPlayer(float thinking_time, bool verbose)
 {
     this->thinking_time = thinking_time;
-    this->verbose = verbose;
-
-    // Seed with a real random value, if available
-    pcg_extras::seed_seq_from<std::random_device> seed_source;
-
-    // Make a random number engine
-    rng = pcg32(seed_source);
+    this->verbose = verbose;   
 }
 
 Engine::IMove *MonteCarloPlayer::choose_move(Engine::IBoard *board)
@@ -22,9 +11,12 @@ Engine::IMove *MonteCarloPlayer::choose_move(Engine::IBoard *board)
 
     int my_turn = board->turn % 2;
 
-    int max_depth_reached = 0;
+    // Reset analyitics
+    max_depth_reached = 0;
+    iterations = 0;
 
-    int iterations = 0;
+    // Internal random player used to for random rollout
+    RandomPlayer random_player;
 
     // Hash map used to store scoring for each possible board configuration.
     std::unordered_map<Engine::board_id, Score> scores;
@@ -109,13 +101,13 @@ Engine::IMove *MonteCarloPlayer::choose_move(Engine::IBoard *board)
             }
 
             // Pick one children node
-            node = node->children[rng(node->possible_moves->size())];
+            node = node->children[random_player.rng(node->possible_moves->size())];
 
             // 3) Rollout
             // Simulate a random game from the node's board configuration
 
             Engine::IBoard *test_board = node->board->get_copy();
-            Engine::play(test_board, &player, &player);
+            Engine::play(test_board, &random_player, &random_player);
 
             // Node the board is in a terminal state, get the outcome
             if (test_board->status == Engine::IBoard::Draw)
@@ -185,7 +177,6 @@ Engine::IMove *MonteCarloPlayer::choose_move(Engine::IBoard *board)
                     if(node->parent != NULL)
                     {
                         back_prop[node->parent->id].increase(score);
-
                     }
                 }
             }

@@ -1,8 +1,6 @@
 #include "MiniMaxPlayer.h"
 #include "../Engine/IPossibleMoves.h"
 
-#include <iostream>
-#include <chrono>
 
 MiniMaxPlayer::MiniMaxPlayer(int depth, bool verbose, int cache_size)
 {

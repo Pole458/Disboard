@@ -6,22 +6,21 @@
 #include <unordered_map>
 #include <unordered_set>
 
-PLMonteCarloPlayer::PLMonteCarloPlayer(float thinking_time, bool verbose)
+PLMonteCarloPlayer::PLMonteCarloPlayer(float thinking_time, bool verbose) : MonteCarloPlayer(thinking_time, verbose)
 {
-    this->thinking_time = thinking_time;
-    this->verbose = verbose;
 }
 
 Engine::IMove *PLMonteCarloPlayer::choose_move(Engine::IBoard *board)
 {
 
-    std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
-
     int my_turn = board->turn % 2;
 
-    int max_depth_reached = 0;
+    // Reset analyitics
+    max_depth_reached = 0;
+    iterations = 0;
 
-    int iterations = 0;
+    // Internal random player used to for random rollout
+    RandomPlayer random_player;
 
     // Creates root node for the game-tree starting from the current board configuration.
     Node root = Node(board->get_copy());
@@ -36,6 +35,8 @@ Engine::IMove *PLMonteCarloPlayer::choose_move(Engine::IBoard *board)
     std::unordered_map<Engine::board_id, Score> back_prop;
 
     Node *node;
+
+    std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
 
     while(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - begin).count() < thinking_time)
     {
@@ -124,7 +125,7 @@ Engine::IMove *PLMonteCarloPlayer::choose_move(Engine::IBoard *board)
 
                 // Rollout
                 Engine::IBoard *test_board = node->board->get_copy();
-                Engine::play(test_board, &player, &player);
+                Engine::play(test_board, &random_player, &random_player);
 
                 float gain = 0;
 

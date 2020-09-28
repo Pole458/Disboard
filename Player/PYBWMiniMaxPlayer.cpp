@@ -4,11 +4,12 @@
 #include <iostream>
 #include <chrono>
 
-PYBWMiniMaxPlayer::PYBWMiniMaxPlayer(int depth, bool verbose, int cache_size)
+PYBWMiniMaxPlayer::PYBWMiniMaxPlayer(int depth, bool verbose, int cache_size) : MiniMaxPlayer(depth, verbose, cache_size)
 {
-    this->max_depth = depth;
-    this->cache_size = cache_size;
-    this->verbose = verbose;
+    for(int i = 0; i < omp_get_max_threads(); i++)
+    {
+        random_players.emplace_back();
+    }
 }
 
 Engine::IMove *PYBWMiniMaxPlayer::choose_move(Engine::IBoard *board)
@@ -608,32 +609,17 @@ void PYBWMiniMaxPlayer::set_cached_score(Engine::board_id id, float score)
     }
 }
 
-float PYBWMiniMaxPlayer::get_score(Node* node)
-{
-    if (node->board->status == Engine::IBoard::Draw)
-    {
-        // Draw
-        return 0.5f;
-    }
-    else if ((my_turn == 1 && node->board->status == Engine::IBoard::First) || (my_turn == 0 && node->board->status == Engine::IBoard::Second))
-    {
-        // Win
-        return 1 + 1.0f / node->board->turn;
-    }
-
-    // Loss
-    return - 1.0f / node->board->turn;
-}
-
 float PYBWMiniMaxPlayer::get_heuristic_score(Node *node, int rollouts)
 {
     float score = 0;;
+
+    RandomPlayer* player = &random_players.at(omp_get_thread_num());
 
     #pragma omp parallel for reduction(+:score)
     for (int i = 0; i < rollouts; i++)
     {
         Engine::IBoard *test_board = node->board->get_copy();
-        Engine::play(test_board, &random_player, &random_player);
+        Engine::play(test_board, player, player);
 
         if (test_board->status == Engine::IBoard::Draw)
         {

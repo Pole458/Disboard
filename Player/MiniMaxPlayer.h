@@ -7,12 +7,13 @@
 
 #include <unordered_map>
 #include <limits>
+#include <iostream>
+#include <chrono>
 
 class MiniMaxPlayer : public IPlayer
 {
 public:
     MiniMaxPlayer(int depth, bool verbose = false, int cache_size = 100000000);
-
     Engine::IMove *choose_move(Engine::IBoard *board);
 
 private:
@@ -20,7 +21,9 @@ private:
 
     float minimize(Node *node, int depth, float alpha, float beta);
     float maximize(Node *node, int depth, float alpha, float beta);
-    
+
+protected:
+
     // Scoring system
     float get_score(Node* node);
     float get_heuristic_score(Node *node, int rollouts);

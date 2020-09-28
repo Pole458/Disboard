@@ -1,15 +1,8 @@
 #include "PMiniMaxPlayer.h"
 #include "../Engine/IPossibleMoves.h"
 
-#include <iostream>
-#include <chrono>
-
-PMiniMaxPlayer::PMiniMaxPlayer(int depth, bool verbose, int cache_size)
+PMiniMaxPlayer::PMiniMaxPlayer(int depth, bool verbose, int cache_size) : MiniMaxPlayer(depth, verbose, cache_size)
 {
-    this->max_depth = depth;
-    this->verbose = verbose;
-    this->cache_size = cache_size;
-
     for(int i = 0; i < omp_get_max_threads(); i++)
     {
         random_players.emplace_back();
@@ -361,40 +354,6 @@ float PMiniMaxPlayer::minimize(Node *node, int depth, float alpha, float beta)
     set_cached_score(node->id, lowscore);
 
     return lowscore;
-}
-
-bool PMiniMaxPlayer::is_id_cached(Engine::board_id id)
-{
-    auto it = cached_id.find(id % cache_size);
-    return it != cached_id.end() && it->second == id;
-}
-
-float PMiniMaxPlayer::get_cached_score(Engine::board_id id)
-{
-    return cached_scores.at(id % cache_size);
-}
-
-void PMiniMaxPlayer::set_cached_score(Engine::board_id id, float score)
-{
-    cached_id[id % cache_size] = id;
-    cached_scores[id % cache_size] = score;
-}
-
-float PMiniMaxPlayer::get_score(Node* node)
-{
-    if (node->board->status == Engine::IBoard::Draw)
-    {
-        // Draw
-        return 0.5f;
-    }
-    else if ((my_turn == 1 && node->board->status == Engine::IBoard::First) || (my_turn == 0 && node->board->status == Engine::IBoard::Second))
-    {
-        // Win
-        return 1 + 1.0f / node->board->turn;
-    }
-
-    // Loss
-    return - 1.0f / node->board->turn;
 }
 
 float PMiniMaxPlayer::get_heuristic_score(Node *node, int rollouts)
