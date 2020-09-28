@@ -7,6 +7,7 @@
 namespace Engine
 {
 
+    // Interface for a set of possible moves
     class IPossibleMoves
     {
     public:

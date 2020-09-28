@@ -6,11 +6,11 @@
 
 #include <string>
 
-// Interface for a Board. Stores the state of the game
 
 namespace Engine
 {
 
+    // Interface for a Board. Stores the state of the game
     class IBoard
     {
 
