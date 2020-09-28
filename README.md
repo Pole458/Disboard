@@ -18,13 +18,13 @@ To ensure better results, the [PCG library](https://github.com/imneme/pcg-cpp) i
 
 ## Building
 
-In order to buil Disboard, a compiler that supports c++17 and OpenMP is required.
+In order to build Disboard, a compiler that supports c++17 and OpenMP is required.
 
 Makefiles are provided for building the project on linux using g++.
 
 
 ## Examples
 
-An implementation of the game ConnectFour is used as an example to show how to use Disboard for creating a game.
+An implementation of the Connect4 game is used as an example to show how to use Disboard.
 
 Two examples files, play.cpp and benchmarks.cpp, can be modified to play against AIs or test them.
