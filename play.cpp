@@ -34,25 +34,28 @@ int main()
     HumanPlayer p1;
     // RandomPlayer p1;
 
-    // MonteCarloPlayer p1(100, false);
-    // PRMonteCarloPlayer p1(25, false);
-    // PLMonteCarloPlayer p1(300, true);
+    // MonteCarloPlayer p1(50, true); 
+    // PRMonteCarloPlayer p1(50 / omp_get_max_threads(), true);
+    // PLMonteCarloPlayer p1(50, true);
 
-    // MiniMaxPlayer p1(10, true);
+    // MonteCarloPlayer's strength can be set with thinking time.
+    // 
+
+    // MiniMaxPlayer p1(6, true);
     // PMiniMaxPlayer p1(6, true);
-    // PYBWMiniMaxPlayer p1(10, false);
+    // PYBWMiniMaxPlayer p1(6, true);
 
     // Player 2 *********************
 
     // HumanPlayer p2;
     // RandomPlayer p2;
 
-    MonteCarloPlayer p2(50, false);
-    // PRMonteCarloPlayer p2(100, false);
-    // PLMonteCarloPlayer p2(25, false);
+    MonteCarloPlayer p2(50, true);
+    // PRMonteCarloPlayer p2(50 / omp_get_max_threads(), true);
+    // PLMonteCarloPlayer p2(50, true);
 
     // MiniMaxPlayer p2(6, true);
-    // PMiniMaxPlayer p2(6, false);
+    // PMiniMaxPlayer p2(6, true);
     // PYBWMiniMaxPlayer p2(6, true);
 
     // Mode ********************

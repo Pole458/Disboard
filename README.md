@@ -22,7 +22,6 @@ In order to build Disboard, a compiler that supports c++17 and OpenMP is require
 
 Makefiles are provided for building the project on linux using g++ by simply using the `make` command in the main folder.
 
-
 ## Examples
 
 An implementation of the Connect4 game is used as an example to show how to use Disboard.
@@ -32,7 +31,7 @@ Two examples files, play.cpp and benchmarks.cpp, can be modified to play against
 The play.cpp file can be easily edited to set the AI type and the difficulty. Both MonteCarloPlayer and MiniMaxPlayer classes have a two paramenters constructors. The second parameter `verbose` specifies wether the AI should print info about the taken decision. The first parameter can be used to set the strenght of the AIs.
 
 Suggested difficulty settings:
- - Easy: MonteCarloPlayer(100), MinMaxPlayer(6)
+ - Easy: MonteCarloPlayer(50), MinMaxPlayer(6)
  - Medium: MonteCarloPlayer(1000), MiniMaxPlayer(8)
  - Hard: MonteCarloPlayer(5000), MiniMaxPlayer(10)
  
