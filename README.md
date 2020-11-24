@@ -35,4 +35,6 @@ Suggested difficulty settings:
  - Medium: MonteCarloPlayer(1000), MiniMaxPlayer(8)
  - Hard: MonteCarloPlayer(5000), MiniMaxPlayer(10)
  
-Developed by Paolo D'Alessandro and Luca Calderini for the HPC course at Unipr
+Developed by Paolo D'Alessandro for the HPC course at Unipr
+
+This projects benefits from the HPC (High Performance Computing) facility of the University of Parma, Italy
