@@ -1,3 +1,5 @@
+![disboard](https://github.com/user-attachments/assets/36b3e534-6800-4330-8aa8-527ce6a53292)
+
 # Disboard
 
 Disboard is a c++ framework useful for studying sequential turn based games.
